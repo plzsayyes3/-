@@ -1,0 +1,9 @@
+# 実職員・月次データはこのリポジトリへコミットしない
+data/staff.json
+data/months/
+exports/
+*.csv
+childcare-shift-data.json
+
+# OS / editor
+.DS_Store
