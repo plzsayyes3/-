@@ -2,7 +2,10 @@
 
 保育園の月間シフトを、**休みの自動配置 → 人による修正 → 休日確定 → 当番の自動配置**の2段階で作るためのプロトタイプです。
 
-このリポジトリは **Public** で運用し、GitHub PagesでHTMLを公開します。実職員データの正本は private な `plzsayyes3/gpts` 側に置き、この公開リポジトリには個人データをコミットしません。
+このリポジトリは **Public** で運用し、GitHub PagesでHTMLを公開します。
+公開URL: https://plzsayyes3.github.io/childcare-shift/
+
+実職員データの正本は private な `plzsayyes3/gpts` 側に置き、この公開リポジトリには個人データをコミットしません。
 
 ## 現在の構造
 
