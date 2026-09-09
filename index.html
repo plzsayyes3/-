@@ -13,6 +13,7 @@
     <p>スタッフDB・勤務パターンDB・月次シフトを分離して管理</p>
   </div>
   <div class="header-actions">
+    <button id="validateAll">整合性チェック</button>
     <button id="exportData">JSON出力</button>
     <label class="file-button">JSON読込<input id="importData" type="file" accept="application/json,.json" /></label>
   </div>
@@ -25,12 +26,15 @@
 </nav>
 
 <main class="wrap">
+  <div id="globalValidation"></div>
+
   <section id="tab-patterns" class="tab-panel active">
     <div class="panel">
       <div class="panel-head">
         <div><h2>勤務パターンDB</h2><p>勤務時間をパターン化し、スタッフから参照します。</p></div>
         <button id="addPattern" class="primary">＋ パターン追加</button>
       </div>
+      <div id="patternValidation"></div>
       <div id="patternTable" class="table-wrap"></div>
       <p class="note">6:45 / 11:30 は初期値として「正規有資格者2名必須」。個別勤務時間もここへ追加します。</p>
     </div>
@@ -42,30 +46,38 @@
         <div><h2>スタッフDB</h2><p>恒常的な勤務条件のみを登録します。希望休は月次入力へ分離します。</p></div>
         <button id="addStaff" class="primary">＋ スタッフ追加</button>
       </div>
+      <div id="staffValidation"></div>
       <div id="staffCards" class="cards"></div>
     </div>
   </section>
 
   <section id="tab-monthly" class="tab-panel">
     <div class="panel">
-      <div class="panel-head"><div><h2>月次設定</h2><p>今月だけの情報と生成条件を入力します。</p></div></div>
+      <div class="panel-head"><div><h2>月次設定</h2><p>今月だけの情報と生成条件を入力します。</p></div><span id="lockBadge" class="badge">編集中</span></div>
       <div class="form-row">
         <label>対象月<input id="month" type="month" /></label>
         <label>正規保育士の月休日日数<input id="regularMonthlyOff" type="number" min="0" max="31" value="9" /></label>
         <label>祝日（日付をカンマ区切り）<input id="holidays" placeholder="例: 21,22" /></label>
         <label>6:45 / 11:30 各上限<input id="edgeShiftMax" type="number" min="1" max="31" value="3" /></label>
       </div>
+      <p class="note">6:45 / 11:30 の上限定義は暫定で「各シフト別」。最終業務ルールは未確定のままです。</p>
     </div>
 
     <div class="panel">
       <div class="panel-head"><div><h2>月次入力</h2><p>希望休・今月だけの固定休を入力します。</p></div></div>
+      <div id="monthlyValidation"></div>
       <div id="monthlyInputs" class="table-wrap"></div>
     </div>
 
     <div class="panel">
       <div class="panel-head">
-        <div><h2>1. 休日生成</h2><p>生成後はセルをクリックして手動修正できます。</p></div>
-        <div class="actions"><button id="generateOff" class="primary">休みを自動配置</button><button id="clearSchedule">生成結果を初期化</button></div>
+        <div><h2>1. 休日生成</h2><p>生成後はセルをクリックして手動修正し、確定します。</p></div>
+        <div class="actions">
+          <button id="generateOff" class="primary">休みを自動配置</button>
+          <button id="lockOff">休日を確定</button>
+          <button id="unlockOff" class="hidden">確定を解除</button>
+          <button id="clearSchedule">生成結果を初期化</button>
+        </div>
       </div>
       <div id="offWarnings"></div>
       <div id="offTable" class="table-wrap"></div>
@@ -82,7 +94,7 @@
   </section>
 </main>
 
-<footer>実職員データの正本は private な gpts 側で管理。ここではブラウザ内に作業コピーを保存します。</footer>
+<footer>実職員データの正本は private な gpts 側で管理。公開用リポジトリには個人データをコミットしません。</footer>
 <script src="app.js"></script>
 </body>
 </html>
