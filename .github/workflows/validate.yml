@@ -1,0 +1,24 @@
+name: Validate PoC
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JavaScript syntax
+        run: node --check app.js
+      - name: Check required files
+        run: |
+          test -f index.html
+          test -f styles.css
+          test -f fixtures/demo-v3.json
+      - name: Validate demo JSON
+        run: node -e "const f=require('./fixtures/demo-v3.json'); if(f.schemaVersion!==3) process.exit(1); console.log('demo schema v3 ok')"
