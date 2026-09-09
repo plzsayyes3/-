@@ -5,5 +5,13 @@ exports/
 *.csv
 childcare-shift-data.json
 
+# トークン・ローカル秘密情報はコミットしない
+.env
+.env.*
+!.env.example
+
+# GitHub Actions / ローカルでprivate gptsを一時取得する場所
+_private/
+
 # OS / editor
 .DS_Store
