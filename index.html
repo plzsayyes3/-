@@ -1,252 +1,88 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>保育園シフト作成 PoC</title>
-<style>
-:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#222;background:#f7f7f5}*{box-sizing:border-box}body{margin:0}header{padding:20px 24px;background:#fff;border-bottom:1px solid #ddd}h1{font-size:20px;margin:0 0 6px}header p{margin:0;color:#666;font-size:13px}.wrap{padding:18px;max-width:1500px;margin:auto}.panel{background:#fff;border:1px solid #ddd;border-radius:10px;padding:16px;margin-bottom:16px}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}.field{display:flex;flex-direction:column;gap:4px}.field label{font-size:12px;color:#555}.field input,.field select{padding:7px 8px;border:1px solid #bbb;border-radius:6px;background:#fff}button{border:1px solid #999;border-radius:7px;background:#fff;padding:8px 12px;cursor:pointer}button.primary{background:#222;color:#fff;border-color:#222}button.danger{color:#a00}.note{font-size:12px;color:#666;margin-top:8px}.table-wrap{overflow:auto;max-width:100%}table{border-collapse:collapse;font-size:12px;white-space:nowrap}th,td{border:1px solid #ddd;padding:5px 6px;text-align:center}th{background:#f3f3f0;position:sticky;top:0;z-index:2}td.name,th.name{position:sticky;left:0;background:#fff;z-index:1;text-align:left;min-width:120px}.closed{background:#eee;color:#777}.off{background:#f1e4e4}.work{background:#edf4ec}.requested{outline:2px solid #d9a400;outline-offset:-2px}.warn{background:#fff6db;border:1px solid #e4c35b;border-radius:7px;padding:8px 10px;margin:6px 0;font-size:12px}.ok{background:#edf7ed;border:1px solid #a7c7a7;border-radius:7px;padding:8px 10px;margin:6px 0;font-size:12px}.staff-grid{display:grid;grid-template-columns:1.2fr 1fr .6fr 1fr 1fr 1fr 1.2fr 1.3fr auto;gap:6px;align-items:center;margin-bottom:6px}.staff-grid input,.staff-grid select{min-width:0;width:100%;padding:6px;border:1px solid #bbb;border-radius:5px}.staff-head{font-size:11px;color:#666}.small{font-size:11px;color:#666}.stage-title{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.stage-title h2{font-size:17px;margin:0}.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:#666}.dot{display:inline-block;width:12px;height:12px;border:1px solid #ccc;vertical-align:-2px;margin-right:3px}.summary{font-size:12px;margin-top:8px}.shift645,.shift1130{font-weight:700}.toolbar{display:flex;gap:8px;flex-wrap:wrap}.hidden{display:none}@media(max-width:900px){.staff-grid{grid-template-columns:1fr 1fr}.staff-head{display:none}.staff-grid button{grid-column:span 2}.wrap{padding:10px}}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>保育園シフト作成 PoC</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<header>
-  <h1>保育園シフト作成 PoC</h1>
-  <p>第1段階：休みを作る → 人が修正 → 第2段階：当番を割り当てる</p>
+<header class="app-header">
+  <div>
+    <h1>保育園シフト作成 PoC</h1>
+    <p>スタッフDB・勤務パターンDB・月次シフトを分離して管理</p>
+  </div>
+  <div class="header-actions">
+    <button id="exportData">JSON出力</button>
+    <label class="file-button">JSON読込<input id="importData" type="file" accept="application/json,.json" /></label>
+  </div>
 </header>
-<div class="wrap">
-  <section class="panel">
-    <div class="stage-title"><h2>基本設定</h2></div>
-    <div class="row">
-      <div class="field"><label>対象月</label><input id="month" type="month" /></div>
-      <div class="field"><label>正規保育士の月休日日数</label><input id="regularMonthlyOff" type="number" min="0" max="31" value="9" /></div>
-      <div class="field"><label>祝日（カンマ区切りの日付）</label><input id="holidays" placeholder="例: 21,22" /></div>
-      <div class="field"><label>6:45 / 11:30 各上限回数</label><input id="edgeShiftMax" type="number" min="1" max="31" value="3" /></div>
+
+<nav class="tabs" aria-label="画面切替">
+  <button class="tab active" data-tab="patterns">勤務パターン</button>
+  <button class="tab" data-tab="staff">スタッフ</button>
+  <button class="tab" data-tab="monthly">月次シフト</button>
+</nav>
+
+<main class="wrap">
+  <section id="tab-patterns" class="tab-panel active">
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>勤務パターンDB</h2><p>勤務時間をパターン化し、スタッフから参照します。</p></div>
+        <button id="addPattern" class="primary">＋ パターン追加</button>
+      </div>
+      <div id="patternTable" class="table-wrap"></div>
+      <p class="note">6:45 / 11:30 は初期値として「正規有資格者2名必須」。個別勤務時間もここへ追加します。</p>
     </div>
-    <div class="note">日曜は自動で休園。祝日は最小版では日付を手入力します。6:45 / 11:30 は「各シフト3回まで」を初期値にしています。</div>
   </section>
 
-  <section class="panel">
-    <div class="stage-title"><h2>職員マスタ</h2><button id="addStaff">＋ 職員追加</button></div>
-    <div class="staff-grid staff-head"><div>氏名</div><div>区分</div><div>資格</div><div>週休数<br>非正規等</div><div>固定休曜日</div><div>希望休</div><div>固定勤務<br>開始-終了</div><div>勤務可能シフト</div><div></div></div>
-    <div id="staffRows"></div>
-    <div class="note">固定休曜日は「月,木」のように入力。希望休は「3,12,25」。固定勤務は「09:00-16:00」。正規保育士は固定勤務を空欄にし、勤務可能シフトを必要に応じて制限します。</div>
+  <section id="tab-staff" class="tab-panel">
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>スタッフDB</h2><p>恒常的な勤務条件のみを登録します。希望休は月次入力へ分離します。</p></div>
+        <button id="addStaff" class="primary">＋ スタッフ追加</button>
+      </div>
+      <div id="staffCards" class="cards"></div>
+    </div>
   </section>
 
-  <section class="panel">
-    <div class="stage-title"><h2>1. 休みを作る</h2><div class="toolbar"><button id="generateOff" class="primary">休みを自動配置</button><button id="clearSchedule">初期化</button></div></div>
-    <div id="offWarnings"></div>
-    <div id="offTable" class="table-wrap"></div>
-    <div class="note">自動配置後、セルをクリックすると「勤務 / 休み」を手で切り替えられます。日曜・祝日は固定です。</div>
+  <section id="tab-monthly" class="tab-panel">
+    <div class="panel">
+      <div class="panel-head"><div><h2>月次設定</h2><p>今月だけの情報と生成条件を入力します。</p></div></div>
+      <div class="form-row">
+        <label>対象月<input id="month" type="month" /></label>
+        <label>正規保育士の月休日日数<input id="regularMonthlyOff" type="number" min="0" max="31" value="9" /></label>
+        <label>祝日（日付をカンマ区切り）<input id="holidays" placeholder="例: 21,22" /></label>
+        <label>6:45 / 11:30 各上限<input id="edgeShiftMax" type="number" min="1" max="31" value="3" /></label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div><h2>月次入力</h2><p>希望休・今月だけの固定休を入力します。</p></div></div>
+      <div id="monthlyInputs" class="table-wrap"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>1. 休日生成</h2><p>生成後はセルをクリックして手動修正できます。</p></div>
+        <div class="actions"><button id="generateOff" class="primary">休みを自動配置</button><button id="clearSchedule">生成結果を初期化</button></div>
+      </div>
+      <div id="offWarnings"></div>
+      <div id="offTable" class="table-wrap"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>2. 当番生成</h2><p>確定した休日を動かさず、勤務パターンを割り当てます。</p></div>
+        <div class="actions"><button id="generateShifts" class="primary">当番を自動配置</button><button id="exportCsv">CSV出力</button></div>
+      </div>
+      <div id="shiftWarnings"></div>
+      <div id="shiftTable" class="table-wrap"></div>
+    </div>
   </section>
+</main>
 
-  <section class="panel">
-    <div class="stage-title"><h2>2. 当番を入れる</h2><div class="toolbar"><button id="generateShifts" class="primary">当番を自動配置</button><button id="exportCsv">CSV出力</button></div></div>
-    <div class="small">必要枠：6:45×2 / 7:30×1 / 8:00×2 / 8:30×3 / 9:00×2 / 9:45×5 / 11:30×2。6:45・11:30は正規保育士2名を必須とします。</div>
-    <div id="shiftWarnings"></div>
-    <div id="shiftTable" class="table-wrap"></div>
-  </section>
-</div>
-<script>
-const SHIFT_TARGETS={"06:45":2,"07:30":1,"08:00":2,"08:30":3,"09:00":2,"09:45":5,"11:30":2};
-const SHIFTS=Object.keys(SHIFT_TARGETS);
-const WEEKDAYS=["日","月","火","水","木","金","土"];
-const TYPES=["正規保育士","非正規保育士","派遣保育士","非正規保育補助"];
-let staff=[];
-let dayState={}; // staffId -> {day:'off'|'work'|'closed'}
-let shiftState={}; // staffId -> {day: label}
-let warnings=[];
-
-function uid(){return Math.random().toString(36).slice(2,10)}
-function defaultStaff(){return {id:uid(),name:"",type:"正規保育士",qualified:true,weeklyDaysOff:2,fixedOffWeekdays:"",requestedOff:"",fixedWork:"",allowedShifts:SHIFTS.join(",")}}
-function monthInfo(){
-  const v=document.querySelector('#month').value;
-  if(!v){const d=new Date();return {year:d.getFullYear(),month:d.getMonth()+1}}
-  const [year,month]=v.split('-').map(Number);return {year,month};
-}
-function daysInMonth(){const {year,month}=monthInfo();return new Date(year,month,0).getDate()}
-function dateFor(day){const {year,month}=monthInfo();return new Date(year,month-1,day)}
-function parseNums(s){return [...new Set(String(s||'').split(/[、,\s]+/).map(x=>Number(x)).filter(Number.isFinite))]}
-function parseWeekdays(s){return String(s||'').split(/[、,\s]+/).map(x=>x.trim()).filter(Boolean)}
-function normalizeTime(s){
-  s=String(s||'').trim(); if(!s)return '';
-  const m=s.match(/^(\d{1,2}):?(\d{2})$/); if(!m)return s;
-  return String(Number(m[1])).padStart(2,'0')+':'+m[2];
-}
-function fixedWorkTimes(s){
-  const p=String(s||'').split(/[-〜~]/).map(x=>normalizeTime(x));
-  return p.length>=2&&p[0]&&p[1]?{start:p[0],end:p[1]}:null;
-}
-function timeMin(t){const m=normalizeTime(t).match(/^(\d{2}):(\d{2})$/);return m?Number(m[1])*60+Number(m[2]):null}
-function isClosed(day){const d=dateFor(day);return d.getDay()===0||parseNums(document.querySelector('#holidays').value).includes(day)}
-function save(){localStorage.setItem('childcareShiftPoc',JSON.stringify({staff,dayState,shiftState,month:document.querySelector('#month').value,regularMonthlyOff:document.querySelector('#regularMonthlyOff').value,holidays:document.querySelector('#holidays').value,edgeShiftMax:document.querySelector('#edgeShiftMax').value}))}
-function load(){
-  const raw=localStorage.getItem('childcareShiftPoc');
-  if(raw){try{const x=JSON.parse(raw);staff=x.staff||[];dayState=x.dayState||{};shiftState=x.shiftState||{};document.querySelector('#month').value=x.month||'';document.querySelector('#regularMonthlyOff').value=x.regularMonthlyOff||9;document.querySelector('#holidays').value=x.holidays||'';document.querySelector('#edgeShiftMax').value=x.edgeShiftMax||3}catch(e){}}
-  if(!document.querySelector('#month').value){const d=new Date();document.querySelector('#month').value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
-  if(!staff.length){staff=[
-    {...defaultStaff(),name:'正規A'},
-    {...defaultStaff(),name:'正規B'},
-    {...defaultStaff(),name:'正規C'},
-    {...defaultStaff(),name:'正規D'},
-    {...defaultStaff(),name:'正規E'},
-    {...defaultStaff(),name:'正規F'},
-    {...defaultStaff(),name:'正規G'},
-    {...defaultStaff(),name:'正規H'},
-    {...defaultStaff(),name:'正規I'},
-    {...defaultStaff(),name:'正規J'},
-    {...defaultStaff(),name:'正規K'},
-    {...defaultStaff(),name:'正規L'},
-    {...defaultStaff(),name:'正規M'},
-    {...defaultStaff(),name:'正規N'},
-    {...defaultStaff(),name:'非正規A',type:'非正規保育士',weeklyDaysOff:3,fixedOffWeekdays:'水',fixedWork:'08:30-16:30',allowedShifts:''},
-    {...defaultStaff(),name:'派遣A',type:'派遣保育士',weeklyDaysOff:2,fixedOffWeekdays:'土',fixedWork:'09:00-17:00',allowedShifts:''}
-  ]}
-}
-function renderStaff(){
-  const root=document.querySelector('#staffRows');root.innerHTML='';
-  staff.forEach(s=>{
-    const row=document.createElement('div');row.className='staff-grid';row.dataset.id=s.id;
-    row.innerHTML=`
-      <input data-k="name" value="${esc(s.name)}" placeholder="氏名">
-      <select data-k="type">${TYPES.map(t=>`<option ${s.type===t?'selected':''}>${t}</option>`).join('')}</select>
-      <select data-k="qualified"><option value="true" ${s.qualified?'selected':''}>有資格</option><option value="false" ${!s.qualified?'selected':''}>無資格</option></select>
-      <input data-k="weeklyDaysOff" type="number" min="0" max="7" value="${s.weeklyDaysOff??2}">
-      <input data-k="fixedOffWeekdays" value="${esc(s.fixedOffWeekdays||'')}" placeholder="月,木">
-      <input data-k="requestedOff" value="${esc(s.requestedOff||'')}" placeholder="3,12,25">
-      <input data-k="fixedWork" value="${esc(s.fixedWork||'')}" placeholder="09:00-16:00">
-      <input data-k="allowedShifts" value="${esc(s.allowedShifts||'')}" placeholder="06:45,07:30,...">
-      <button class="danger" data-del>削除</button>`;
-    root.appendChild(row);
-  })
-  root.querySelectorAll('input,select').forEach(el=>el.addEventListener('change',e=>{const row=e.target.closest('.staff-grid');const s=staff.find(x=>x.id===row.dataset.id);const k=e.target.dataset.k;let v=e.target.value;if(k==='qualified')v=v==='true';if(k==='weeklyDaysOff')v=Number(v);s[k]=v;save()}));
-  root.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',e=>{const id=e.target.closest('.staff-grid').dataset.id;staff=staff.filter(x=>x.id!==id);delete dayState[id];delete shiftState[id];renderStaff();renderOff();renderShift();save()}));
-}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function requestedSet(s){return new Set(parseNums(s.requestedOff))}
-function fixedWeekdaySet(s){return new Set(parseWeekdays(s.fixedOffWeekdays))}
-
-function generateOff(){
-  const n=daysInMonth(); dayState={}; shiftState={};
-  const dailyOff={}; for(let d=1;d<=n;d++)dailyOff[d]=0;
-  // 1) closed / fixed / requested first
-  staff.forEach(s=>{
-    dayState[s.id]={}; const req=requestedSet(s), fw=fixedWeekdaySet(s);
-    for(let d=1;d<=n;d++){
-      const wd=WEEKDAYS[dateFor(d).getDay()];
-      let st='work';
-      if(isClosed(d))st='closed';
-      else if(fw.has(wd)||req.has(d))st='off';
-      dayState[s.id][d]=st;if(st!=='work')dailyOff[d]++;
-    }
-  });
-  // 2) regular: monthly total off (closed days included)
-  const regularTarget=Number(document.querySelector('#regularMonthlyOff').value)||0;
-  staff.filter(s=>s.type==='正規保育士').forEach(s=>{
-    let off=Object.values(dayState[s.id]).filter(x=>x!=='work').length;
-    while(off<regularTarget){
-      const candidates=[];for(let d=1;d<=n;d++)if(dayState[s.id][d]==='work')candidates.push(d);
-      if(!candidates.length)break;
-      candidates.sort((a,b)=>dailyOff[a]-dailyOff[b]||Math.random()-.5);
-      const d=candidates[0];dayState[s.id][d]='off';dailyOff[d]++;off++;
-    }
-  });
-  // 3) non-regular etc: weekly days off (Sunday/holiday/fixed/requested included)
-  staff.filter(s=>s.type!=='正規保育士').forEach(s=>{
-    const target=Math.max(0,Math.min(7,Number(s.weeklyDaysOff)||0));
-    const weeks={};for(let d=1;d<=n;d++){const dt=dateFor(d);const monday=new Date(dt);const shift=(dt.getDay()+6)%7;monday.setDate(dt.getDate()-shift);const key=monday.toISOString().slice(0,10);(weeks[key]??=[]).push(d)}
-    Object.values(weeks).forEach(ds=>{
-      let off=ds.filter(d=>dayState[s.id][d]!=='work').length;
-      while(off<target){
-        const candidates=ds.filter(d=>dayState[s.id][d]==='work');if(!candidates.length)break;
-        candidates.sort((a,b)=>dailyOff[a]-dailyOff[b]||Math.random()-.5);const d=candidates[0];dayState[s.id][d]='off';dailyOff[d]++;off++;
-      }
-    })
-  });
-  renderOff();renderShift();validateOff();save();
-}
-function renderOff(){
-  const root=document.querySelector('#offTable');if(!Object.keys(dayState).length){root.innerHTML='<div class="small">まだ生成されていません。</div>';return}
-  const n=daysInMonth();let html='<table><thead><tr><th class="name">職員</th>';
-  for(let d=1;d<=n;d++){html+=`<th>${d}<br>${WEEKDAYS[dateFor(d).getDay()]}</th>`}html+='<th>休</th></tr></thead><tbody>';
-  staff.forEach(s=>{const req=requestedSet(s);html+=`<tr><td class="name">${esc(s.name)}</td>`;let off=0;for(let d=1;d<=n;d++){const st=dayState[s.id]?.[d]||'work';if(st!=='work')off++;const cls=st==='closed'?'closed':st==='off'?'off':'work';const text=st==='closed'?'休園':st==='off'?'休':'出';html+=`<td class="${cls} ${req.has(d)?'requested':''}" data-offcell data-id="${s.id}" data-day="${d}">${text}</td>`}html+=`<td>${off}</td></tr>`});html+='</tbody></table>';root.innerHTML=html;
-  root.querySelectorAll('[data-offcell]').forEach(td=>td.addEventListener('click',()=>{const id=td.dataset.id,d=Number(td.dataset.day);if(isClosed(d))return;dayState[id][d]=dayState[id][d]==='off'?'work':'off';shiftState={};renderOff();renderShift();validateOff();save()}));
-}
-function validateOff(){
-  const out=[];const n=daysInMonth(),regTarget=Number(document.querySelector('#regularMonthlyOff').value)||0;
-  staff.forEach(s=>{
-    const states=dayState[s.id]||{};const off=Object.values(states).filter(x=>x!=='work').length;
-    if(s.type==='正規保育士'&&off!==regTarget)out.push(`${s.name}: 休み ${off}日（設定 ${regTarget}日）`);
-    const req=requestedSet(s);[...req].forEach(d=>{if(d>=1&&d<=n&&states[d]==='work')out.push(`${s.name}: 希望休 ${d}日が勤務になっています`)});
-  });
-  const el=document.querySelector('#offWarnings');el.innerHTML=out.length?out.map(x=>`<div class="warn">${esc(x)}</div>`).join(''):'<div class="ok">休み配置の基本条件に大きな警告はありません。</div>';
-}
-function allowedSet(s){const x=String(s.allowedShifts||'').split(/[、,\s]+/).map(normalizeTime).filter(Boolean);return new Set(x.length?x:SHIFTS)}
-function isRegularQualified(s){return s.type==='正規保育士'&&s.qualified}
-function generateShifts(){
-  if(!Object.keys(dayState).length)generateOff();
-  shiftState={};warnings=[];const n=daysInMonth(),edgeMax=Number(document.querySelector('#edgeShiftMax').value)||3;
-  const counts={};staff.forEach(s=>{counts[s.id]={};SHIFTS.forEach(sh=>counts[s.id][sh]=0)});
-  for(let d=1;d<=n;d++){
-    staff.forEach(s=>{shiftState[s.id]??={};shiftState[s.id][d]=dayState[s.id]?.[d]==='work'?'勤務':(dayState[s.id]?.[d]==='closed'?'休園':'休')});
-    if(isClosed(d))continue;
-    const working=staff.filter(s=>dayState[s.id]?.[d]==='work');
-    // fixed work first
-    working.forEach(s=>{const fw=fixedWorkTimes(s.fixedWork);if(fw)shiftState[s.id][d]=`${fw.start}-${fw.end}`});
-    const assigned=new Set(working.filter(s=>fixedWorkTimes(s.fixedWork)).map(s=>s.id));
-    // Count fixed workers that exactly start on a standard shift (except edge shifts; edge requires regular qualified slots)
-    const fixedByShift={};SHIFTS.forEach(sh=>fixedByShift[sh]=working.filter(s=>{const fw=fixedWorkTimes(s.fixedWork);return fw&&fw.start===sh}).length);
-    function pickFor(sh,need,edge=false){
-      const cand=working.filter(s=>!assigned.has(s.id)&&!fixedWorkTimes(s.fixedWork)&&allowedSet(s).has(sh)&&(!edge||isRegularQualified(s)));
-      cand.sort((a,b)=>{
-        const aOver=(counts[a.id][sh]>=edgeMax?1:0),bOver=(counts[b.id][sh]>=edgeMax?1:0);
-        if(edge&&aOver!==bOver)return aOver-bOver;
-        return counts[a.id][sh]-counts[b.id][sh]||totalAssigned(counts[a.id])-totalAssigned(counts[b.id]);
-      });
-      const picked=cand.slice(0,need);picked.forEach(s=>{shiftState[s.id][d]=sh;assigned.add(s.id);counts[s.id][sh]++});
-      if(picked.length<need)warnings.push(`${d}日 ${sh}: ${need-picked.length}名不足`);
-      if(edge)picked.filter(s=>counts[s.id][sh]>edgeMax).forEach(s=>warnings.push(`${s.name}: ${sh} が上限${edgeMax}回を超えました（${counts[s.id][sh]}回）`));
-    }
-    // hard edge requirements
-    pickFor('06:45',SHIFT_TARGETS['06:45'],true);
-    pickFor('11:30',SHIFT_TARGETS['11:30'],true);
-    // other target starts; fixed workers at same start reduce target
-    ['07:30','08:00','08:30','09:00','09:45'].forEach(sh=>pickFor(sh,Math.max(0,SHIFT_TARGETS[sh]-(fixedByShift[sh]||0)),false));
-    // remaining regular staff get a balanced allowed shift with the greatest shortage preference, otherwise 勤務
-    working.filter(s=>!assigned.has(s.id)&&!fixedWorkTimes(s.fixedWork)).forEach(s=>{
-      const opts=[...allowedSet(s)].filter(x=>SHIFTS.includes(x));if(!opts.length)return;
-      opts.sort((a,b)=>counts[s.id][a]-counts[s.id][b]);const sh=opts[0];shiftState[s.id][d]=sh;counts[s.id][sh]++;assigned.add(s.id);
-    });
-    // 8:30 minimum headcount based on start/end times
-    let at830=0;working.forEach(s=>{
-      const lab=shiftState[s.id][d];let st=null,en=null;const fw=fixedWorkTimes(s.fixedWork);
-      if(fw){st=timeMin(fw.start);en=timeMin(fw.end)}else if(SHIFTS.includes(lab)){st=timeMin(lab);en=st+8*60+45}
-      if(st!==null&&st<=510&&(en===null||en>510))at830++;
-    });
-    if(at830<8)warnings.push(`${d}日 8:30時点: ${at830}名（最低8名）`);
-  }
-  renderShift();save();
-}
-function totalAssigned(c){return Object.values(c).reduce((a,b)=>a+b,0)}
-function renderShift(){
-  const root=document.querySelector('#shiftTable');if(!Object.keys(shiftState).length){root.innerHTML='<div class="small">休みを確定後、「当番を自動配置」を押してください。</div>';document.querySelector('#shiftWarnings').innerHTML='';return}
-  const n=daysInMonth();let html='<table><thead><tr><th class="name">職員</th>';
-  for(let d=1;d<=n;d++)html+=`<th>${d}<br>${WEEKDAYS[dateFor(d).getDay()]}</th>`;html+='<th>645</th><th>1130</th></tr></thead><tbody>';
-  staff.forEach(s=>{let c645=0,c1130=0;html+=`<tr><td class="name">${esc(s.name)}</td>`;for(let d=1;d<=n;d++){const lab=shiftState[s.id]?.[d]||'';if(lab==='06:45')c645++;if(lab==='11:30')c1130++;const cls=lab==='休'||lab==='休園'?'off':lab==='06:45'?'shift645':lab==='11:30'?'shift1130':'';html+=`<td class="${cls}">${esc(lab)}</td>`}html+=`<td>${c645}</td><td>${c1130}</td></tr>`});html+='</tbody></table>';root.innerHTML=html;
-  const w=document.querySelector('#shiftWarnings');w.innerHTML=warnings.length?warnings.map(x=>`<div class="warn">${esc(x)}</div>`).join(''):'<div class="ok">現在の簡易チェックでは不足警告はありません。</div>';
-}
-function exportCsv(){
-  if(!Object.keys(shiftState).length)return alert('先に当番を生成してください');
-  const n=daysInMonth();const rows=[];rows.push(['職員',...Array.from({length:n},(_,i)=>`${i+1}日`)]);staff.forEach(s=>rows.push([s.name,...Array.from({length:n},(_,i)=>shiftState[s.id]?.[i+1]||'')]));
-  const csv='\ufeff'+rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));const {year,month}=monthInfo();a.download=`shift-${year}-${String(month).padStart(2,'0')}.csv`;a.click();URL.revokeObjectURL(a.href);
-}
-
-document.querySelector('#addStaff').addEventListener('click',()=>{staff.push(defaultStaff());renderStaff();save()});
-document.querySelector('#generateOff').addEventListener('click',generateOff);
-document.querySelector('#generateShifts').addEventListener('click',generateShifts);
-document.querySelector('#exportCsv').addEventListener('click',exportCsv);
-document.querySelector('#clearSchedule').addEventListener('click',()=>{dayState={};shiftState={};warnings=[];renderOff();renderShift();save()});
-['month','regularMonthlyOff','holidays','edgeShiftMax'].forEach(id=>document.querySelector('#'+id).addEventListener('change',()=>{if(id==='month'){dayState={};shiftState={};renderOff();renderShift()}save()}));
-load();renderStaff();renderOff();renderShift();
-</script>
+<footer>実職員データの正本は private な gpts 側で管理。ここではブラウザ内に作業コピーを保存します。</footer>
+<script src="app.js"></script>
 </body>
 </html>
