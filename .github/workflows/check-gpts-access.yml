@@ -1,0 +1,40 @@
+name: Check private gpts access
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check token is configured
+        env:
+          GPTS_REPO_TOKEN: ${{ secrets.GPTS_REPO_TOKEN }}
+        run: |
+          if [ -z "$GPTS_REPO_TOKEN" ]; then
+            echo "GPTS_REPO_TOKEN is not configured in Repository secrets."
+            exit 1
+          fi
+          echo "GPTS_REPO_TOKEN is configured."
+
+      - name: Checkout private gpts repository
+        uses: actions/checkout@v4
+        with:
+          repository: plzsayyes3/gpts
+          token: ${{ secrets.GPTS_REPO_TOKEN }}
+          path: _private/gpts
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify childcare shift source files
+        run: |
+          test -f _private/gpts/projects/childcare-shift/data/staff.json
+          test -f _private/gpts/projects/childcare-shift/data/patterns.json
+          echo "Private gpts access OK. Required childcare-shift source files were found."
+
+      # Important:
+      # _private/gpts is runner-local temporary data only.
+      # Do not upload it as an artifact and do not include it in GitHub Pages.
