@@ -1,8 +1,8 @@
 name: Deploy static HTML to GitHub Pages
 
+# Private開発中は自動公開しない。
+# 実証実験開始時にPublic化し、pushトリガーを戻す。
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
