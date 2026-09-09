@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 3,
+  "exportedAt": "2026-09-10T00:00:00+09:00",
+  "app": "childcare-shift-poc",
+  "db": {
+    "schemaVersion": 3,
+    "patterns": [
+      {"id":"P01","name":"6:45","start":"06:45","end":"15:30","workMinutes":480,"breakMinutes":45,"requiredCount":2,"regularQualifiedRequired":2,"active":true},
+      {"id":"P02","name":"7:30","start":"07:30","end":"16:15","workMinutes":480,"breakMinutes":45,"requiredCount":1,"regularQualifiedRequired":0,"active":true},
+      {"id":"P03","name":"8:00","start":"08:00","end":"16:45","workMinutes":480,"breakMinutes":45,"requiredCount":2,"regularQualifiedRequired":0,"active":true},
+      {"id":"P04","name":"8:30","start":"08:30","end":"17:15","workMinutes":480,"breakMinutes":45,"requiredCount":3,"regularQualifiedRequired":0,"active":true},
+      {"id":"P05","name":"9:00","start":"09:00","end":"17:45","workMinutes":480,"breakMinutes":45,"requiredCount":2,"regularQualifiedRequired":0,"active":true},
+      {"id":"P06","name":"9:45","start":"09:45","end":"18:30","workMinutes":480,"breakMinutes":45,"requiredCount":5,"regularQualifiedRequired":0,"active":true},
+      {"id":"P07","name":"11:30","start":"11:30","end":"20:15","workMinutes":480,"breakMinutes":45,"requiredCount":2,"regularQualifiedRequired":2,"active":true},
+      {"id":"P08","name":"短時間8:30-16:30","start":"08:30","end":"16:30","workMinutes":420,"breakMinutes":60,"requiredCount":0,"regularQualifiedRequired":0,"active":true},
+      {"id":"P09","name":"短時間9:00-16:00","start":"09:00","end":"16:00","workMinutes":360,"breakMinutes":60,"requiredCount":0,"regularQualifiedRequired":0,"active":true}
+    ],
+    "staff": [
+      {"id":"S001","name":"正規01","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S002","name":"正規02","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S003","name":"正規03","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S004","name":"正規04","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S005","name":"正規05","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S006","name":"正規06","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S007","name":"正規07","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S008","name":"正規08","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S009","name":"正規09","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S010","name":"正規10","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S011","name":"正規11","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S012","name":"正規12","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S013","name":"正規13","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S014","name":"正規14","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S015","name":"正規15","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S016","name":"正規16","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S017","name":"正規17","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S018","name":"正規18","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S019","name":"正規19","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S020","name":"正規20","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S021","name":"正規21","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S022","name":"正規22","employmentType":"正規保育士","qualified":true,"weeklyDaysOff":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"defaultPatternId":null,"active":true,"notes":"匿名テスト"},
+      {"id":"S023","name":"非正規01","employmentType":"非正規保育士","qualified":true,"weeklyDaysOff":2,"fixedOffWeekdays":["水"],"allowedPatternIds":["P08"],"defaultPatternId":"P08","active":true,"notes":"匿名テスト・8:30-16:30固定"},
+      {"id":"S024","name":"派遣01","employmentType":"派遣保育士","qualified":true,"weeklyDaysOff":2,"fixedOffWeekdays":["土"],"allowedPatternIds":["P09"],"defaultPatternId":"P09","active":true,"notes":"匿名テスト・9:00-16:00固定"},
+      {"id":"S025","name":"補助01","employmentType":"非正規保育補助","qualified":false,"weeklyDaysOff":3,"fixedOffWeekdays":["火"],"allowedPatternIds":["P09"],"defaultPatternId":"P09","active":true,"notes":"匿名テスト・無資格"}
+    ],
+    "monthly": {
+      "2026-09": {
+        "requestedOff": {
+          "S001":[5],"S002":[12],"S003":[19],"S004":[26],"S005":[7,14],"S006":[10],"S007":[18],"S008":[24],"S023":[4],"S024":[11]
+        },
+        "fixedOff": {"S009":[8],"S010":[15]},
+        "locked": false,
+        "regularMonthlyOff": 9,
+        "holidays": [],
+        "edgeShiftMax": 3,
+        "dayState": {},
+        "shiftState": {}
+      }
+    }
+  }
+}
