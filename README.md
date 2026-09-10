@@ -2,177 +2,228 @@
 
 保育園の月間シフトを、**休みの自動配置 → 人による修正 → 休日確定 → 当番の自動配置**の2段階で作るためのプロトタイプです。
 
-このリポジトリは **Public** で運用し、GitHub PagesでHTMLを公開します。
-
 公開URL: https://plzsayyes3.github.io/childcare-shift/
 
-## リポジトリの役割分担
-
-個人情報と公開コードを分離します。
+## リポジトリ構成
 
 ```text
 plzsayyes3/childacare-staff   Private
-  └─ 職員氏名・雇用区分・資格・個別勤務条件・将来の希望休等
-        │
-        │ STAFF_REPO_TOKEN / read-only
-        ▼
-GitHub Actions runner
-        │
-        ├─ 必要な処理だけ実行
-        └─ 個人情報そのものは公開しない
-        ▼
-plzsayyes3/childcare-shift    Public
-  └─ UI・シフト生成ロジック・匿名デモ・GitHub Pages
+  ├─ data/staff.json          職員マスタ正本
+  ├─ data/patterns.json       勤務パターン正本
+  └─ data/months/YYYY-MM.json 月次の希望休・固定休・生成状態
+          ▲
+          │ GitHub API
+          │ ページで本人が入力したFine-grained PAT
+          ▼
+plzsayyes3/childcare-shift    Public / GitHub Pages
+  ├─ UI
+  ├─ CSVインポート
+  ├─ シフト生成ロジック
+  └─ 匿名サンプルのみ
 
 plzsayyes3/gpts               Private
   └─ プロジェクト仕様・設計記録
 ```
 
-### 個人情報の正本
+実職員情報の正本は `childacare-staff` です。Publicな `childcare-shift` には実名入りデータをcommitしません。
 
-実職員データの正本は以下です。
+## ページ上でGitHubトークンを設定する方式
 
-```text
-plzsayyes3/childacare-staff/data/staff.json
-```
+ページ上部の **Private職員DB** 欄を使います。
 
-`childcare-shift` と `gpts` には、今後実職員DB本体を保存しません。
+1. リポジトリ名は通常 `plzsayyes3/childacare-staff` のままにする
+2. GitHubトークンを入力
+3. `接続確認`
+4. `職員・パターン読込` または `今月を読込`
+5. 編集後、必要なら `職員・パターン保存` / `今月を保存`
+6. 作業後に `トークン消去`
 
-勤務パターンや公開可能な生成ルールは `childcare-shift` 側で管理できます。設計メモは `gpts` に残します。
+### トークンの保存方法
 
-## 現在の画面構造
+トークン値は以下には保存しません。
 
-1. **勤務パターンDB** — 開始・終了・必要人数・資格条件
-2. **スタッフDB** — 雇用区分・職種・資格・固定休・勤務可能パターン等
-3. **月次シフト** — 希望休・今月だけの固定休・休日生成・当番生成
+- GitHubリポジトリ
+- HTML / JavaScriptソース
+- localStorage
+- sessionStorage
+- JSON / CSV
 
-データは概念上4層です。
+入力したトークンは、そのブラウザタブのJavaScriptメモリ上だけに保持します。入力欄からも取得後に消します。タブを閉じるか `トークン消去` を押すと保持値は消えます。
 
-- スタッフDB
-- 勤務パターンDB
-- 月次データ
-- 生成結果
-
-JSONスキーマは現在 **v3** です。
-
-## private職員DBへアクセスするトークン
-
-このリポジトリはPublicなので、**GitHubトークンをHTML / JavaScript / JSON / README / localStorageへ保存してはいけません**。
-
-正式な保管場所は GitHub Actions の **Repository secret** です。
-
-Secret名:
-
-```text
-STAFF_REPO_TOKEN
-```
-
-### GitHub上での登録場所
-
-`childcare-shift` リポジトリで:
-
-```text
-Settings
-  → Secrets and variables
-    → Actions
-      → Repository secrets
-        → New repository secret
-```
-
-Name:
-
-```text
-STAFF_REPO_TOKEN
-```
-
-Secret:
-
-```text
-privateな plzsayyes3/childacare-staff を読み取れるGitHubトークン
-```
+### 推奨トークン
 
 Fine-grained Personal Access Tokenを推奨します。
 
-基本権限:
+読込だけの場合:
 
 ```text
 Repository access: plzsayyes3/childacare-staff のみ
 Contents: Read-only
 ```
 
-職員DBへ書き戻す仕組みを実装するまではwrite権限を付けません。
-
-### ローカル開発
-
-`.env.example`:
-
-```env
-STAFF_REPO_TOKEN=
-STAFF_REPO=plzsayyes3/childacare-staff
-```
-
-ローカルでは `.env` を作成します。
-
-```env
-STAFF_REPO_TOKEN=実際のトークン
-STAFF_REPO=plzsayyes3/childacare-staff
-```
-
-`.env` と `.env.*` は `.gitignore` 対象です。`.env.example` だけをGit管理します。
-
-## 接続確認
-
-手動実行用Workflow:
+ページからPrivateリポジトリへ保存もする場合:
 
 ```text
-.github/workflows/check-staff-access.yml
+Repository access: plzsayyes3/childacare-staff のみ
+Contents: Read and write
 ```
 
-GitHub Actions画面で:
+必要以上のリポジトリや権限を与えないでください。可能なら有効期限も短めにします。
+
+### セキュリティ上の注意
+
+この方式では、トークンをPublicリポジトリへ埋め込むことはありませんが、**入力中・利用中のトークンはそのブラウザページのJavaScriptから利用可能**です。ブラウザ拡張やXSS等の影響を完全に排除できる方式ではありません。
+
+そのため、この用途専用で `childacare-staff` だけに限定したFine-grained tokenを使います。メインアカウント全体へ広い権限を持つPATは使いません。
+
+## Private職員DBとの読込・保存
+
+### 職員・パターン読込
+
+以下をGitHub APIから読み込みます。
 
 ```text
-Check private staff access
-  → Run workflow
+data/staff.json
+data/patterns.json
 ```
 
-を実行すると、
+ブラウザの作業コピーへ反映します。
 
-1. `STAFF_REPO_TOKEN` が設定済みか
-2. `plzsayyes3/childacare-staff` をcheckoutできるか
-3. `data/staff.json` が存在するか
-4. `staff` 配列を読み取れるか
+### 職員・パターン保存
 
-を確認します。
+現在のブラウザ上のスタッフDB・勤務パターンDBを、同じ2ファイルへcommitします。書込権限のあるトークンが必要です。
 
-private職員DBはRunner上の
+### 今月を読込 / 保存
+
+対象月が `2026-10` なら以下を使用します。
 
 ```text
-_private/childacare-staff
+data/months/2026-10.json
 ```
 
-へ一時checkoutします。
+希望休・固定休・休日生成状態・当番生成状態など、その月に紐づくデータを保存します。
 
-ここは:
+## CSVインポート
 
-- Git管理しない
-- Artifactへアップロードしない
-- GitHub Pagesへ含めない
-- 職員データをActionsログへ出力しない
-- Workflow終了後にRunnerとともに破棄する
+ページに **CSVインポート** タブがあります。行数に上限を設けず、用途別に4種類のCSVを読み込めます。
 
-という扱いです。
+CSV読込はまずブラウザの作業コピーだけを更新します。Privateリポジトリへ反映するには、その後に上部の保存ボタンを押します。
 
-## ブラウザとprivate repoを直接つながない理由
+### 1. 職員マスタCSV
 
-GitHub Pagesは静的サイトです。ブラウザJavaScriptにprivate repo用トークンを渡すと、閲覧者がそのトークンを取得できます。
+サンプル: `samples/staff.csv`
 
-そのため、次の構造は禁止します。
+列:
 
 ```text
-Browser → token → private repository
+id
+name
+employmentType
+role
+qualifications
+weeklyWorkDays
+weeklyDaysOff
+fixedOffWeekdays
+allowedPatternIds
+preferredPatternIds
+defaultPatternId
+shiftPolicy
+requestedOffLimit
+active
+notes
 ```
 
-必ずサーバー側相当のGitHub Actions等を介します。
+複数値は `|` 区切りです。
+
+例:
+
+```text
+保育士|看護師
+P01|P02|P03
+月|水
+```
+
+同一 `id` が既に存在する場合は更新、存在しないIDは追加します。
+
+### 2. 勤務パターンCSV
+
+サンプル: `samples/patterns.csv`
+
+列:
+
+```text
+id
+name
+start
+end
+workMinutes
+breakMinutes
+requiredCount
+regularQualifiedRequired
+active
+category
+```
+
+同一 `id` は更新、未登録IDは追加です。
+
+### 3. 月次・職員別条件CSV
+
+サンプル: `samples/monthly-staff.csv`
+
+列:
+
+```text
+month
+staffId
+staffName
+requestedOff
+fixedOff
+```
+
+`month` は `YYYY-MM`。職員照合は `staffId` を優先し、未入力なら完全一致する `staffName` を使います。
+
+日付の複数指定例:
+
+```text
+3|12|25
+```
+
+休日確定済みの月へは上書きせず、確定解除を要求します。
+
+### 4. 月次・全体設定CSV
+
+サンプル: `samples/monthly-settings.csv`
+
+列:
+
+```text
+month
+regularMonthlyOff
+holidays
+edgeShiftMax
+```
+
+祝日の複数指定も `|` 区切りです。
+
+## CSVサンプル一覧
+
+```text
+samples/staff.csv
+samples/patterns.csv
+samples/monthly-staff.csv
+samples/monthly-settings.csv
+```
+
+サンプルには実職員情報を含めません。PagesのCSVインポート画面から各ファイルをそのままダウンロードできます。
+
+## 現在の画面
+
+1. **勤務パターン** — 開始・終了・必要人数・資格条件
+2. **スタッフ** — 雇用区分・職種・資格・勤務条件
+3. **月次シフト** — 希望休・固定休・休日生成・当番生成
+4. **CSVインポート** — 一括データ投入
+
+JSONスキーマは現在 **v3** です。
 
 ## 基本勤務パターン
 
@@ -186,66 +237,50 @@ Browser → token → private repository
 | P06 | 09:45 | 18:30 | 5 |
 | P07 | 11:30 | 20:15 | 2 |
 
-正規保育士の標準勤務は実働8時間＋休憩45分。
+正規保育士の標準勤務は実働8時間＋休憩45分です。
 
-## 現在反映している条件
+## 現在反映している主な条件
 
 - 日曜・祝日は休園
 - 06:45 は正規保育士かつ保育士資格2名
 - 11:30 は正規保育士かつ保育士資格2名
 - 08:30 時点で最低8名
 - 正規保育士は月の共通休日日数を設定
-- 非正規・派遣等は週休数・週勤務日数・固定休曜日を持てる
-- 希望休は絶対条件ではなく、休み候補として優先
+- 非正規等は週休数・週勤務日数・固定休曜日を設定可能
+- 希望休はソフト条件
 - 今月だけの固定休は絶対条件
-- 個別勤務時間は勤務パターンとして追加可能
-- 基本勤務・優先勤務・勤務可能パターンを登録可能
-- 勤務ポリシーを `flexible / prefer-fixed / fixed` で表現可能
-- 看護師・事務員等の職種・資格を保持可能
-- 06:45 / 11:30 の偏りを抑える簡易割当
-- 条件不足を日付・勤務パターン・人数単位で警告表示
+- 基本勤務・優先勤務・勤務可能パターンを設定可能
+- `flexible / prefer-fixed / fixed` の勤務ポリシー
+- 看護師・事務員等の職種・資格
+- 条件不足の警告
 - JSON入出力
-- CSV出力
+- CSV出力 / CSV入力
 
-## 安全策
+## Publicリポジトリの安全策
 
-- 実職員データをこのPublicリポジトリへcommitしない
-- `data/staff.json`, `data/months/`, `_private/`, `.env` 等を `.gitignore`
-- トークンはRepository secretまたはローカル`.env`のみ
-- private職員DBをPages/Artifactへそのまま出さない
-- Actionsログへ個人情報を表示しない
-- 匿名デモデータだけをPublic側へ置く
+`.gitignore` で以下をPublicリポジトリから除外しています。
 
-## 匿名デモデータ
+```text
+data/staff.json
+data/months/
+exports/
+*.csv
+childcare-shift-data.json
+.env
+.env.*
+_private/
+```
 
-`fixtures/demo-v3.json` に実職員情報を含まない匿名検証データを置いています。
+ただし `samples/` 配下の匿名CSVはPublicで管理します。
 
-## 使い方
-
-1. GitHub Pagesを開く
-2. 勤務パターンを確認/追加
-3. スタッフ条件を読み込む、または試算用データを入力
-4. 対象月・休日数・希望休等を入力
-5. **休みを自動配置**
-6. 休日表を手修正
-7. **休日を確定**
-8. **当番を自動配置**
-9. 不足警告を確認
-10. 必要ならCSV / JSON出力
-
-## 現段階の制限
+## 現段階の未確定事項
 
 - 労働時間・連続勤務・就業規則に応じた厳密な労務チェック
-- 06:45 / 11:30 の上限が各別か合算かの最終仕様
+- 06:45 / 11:30 上限が各別か合算か
 - 希望休を実現できない場合の最適化重み
-- 土曜日専用の必要人数・勤務ルール
-- 研修・会議等の勤務扱いイベント
+- 土曜日専用ルール
+- 研修・会議等の勤務イベント
 - 当番セルの直接手修正とロック
-- private職員DBからの本番用自動シフト生成
 - 数理最適化による公平性改善
 
-## 公開運用
-
-リポジトリ: `plzsayyes3/childcare-shift`
-
-mainへのpushでGitHub Pagesへ自動デプロイします。Public運用中も、職員氏名・勤務条件・希望休等の個人情報は公開側へcommitしません。
+mainへのpushでGitHub Pagesへ自動デプロイします。
