@@ -19,10 +19,32 @@
   </div>
 </header>
 
+<div class="connection-bar">
+  <div class="connection-main">
+    <label>Private職員DB
+      <input id="staffRepoName" value="plzsayyes3/childacare-staff" autocomplete="off" />
+    </label>
+    <label>GitHubトークン（このタブのみ）
+      <input id="staffRepoToken" type="password" placeholder="github_pat_... / ghp_..." autocomplete="off" spellcheck="false" />
+    </label>
+    <div class="connection-actions">
+      <button id="checkPrivateRepo">接続確認</button>
+      <button id="loadPrivateMasters" class="primary">職員・パターン読込</button>
+      <button id="savePrivateMasters">職員・パターン保存</button>
+      <button id="loadPrivateMonth">今月を読込</button>
+      <button id="savePrivateMonth">今月を保存</button>
+      <button id="clearPrivateToken">トークン消去</button>
+    </div>
+  </div>
+  <p class="security-note">トークンはlocalStorage・HTML・GitHubへ保存しません。入力後はこのタブのメモリだけに保持します。読込だけならPrivateリポジトリの Contents: Read、保存するなら Contents: Read and write が必要です。</p>
+  <div id="privateRepoStatus"></div>
+</div>
+
 <nav class="tabs" aria-label="画面切替">
   <button class="tab active" data-tab="patterns">勤務パターン</button>
   <button class="tab" data-tab="staff">スタッフ</button>
   <button class="tab" data-tab="monthly">月次シフト</button>
+  <button class="tab" data-tab="csv">CSVインポート</button>
 </nav>
 
 <main class="wrap">
@@ -92,10 +114,42 @@
       <div id="shiftTable" class="table-wrap"></div>
     </div>
   </section>
+
+  <section id="tab-csv" class="tab-panel">
+    <div class="panel">
+      <div class="panel-head"><div><h2>CSVインポート</h2><p>用途別CSVを何行でも読み込めます。同一ID・同一月は更新、未登録IDは追加します。</p></div></div>
+      <div id="csvImportStatus"></div>
+      <div class="import-grid">
+        <article class="import-card">
+          <h3>1. 職員マスタ</h3>
+          <p>氏名、雇用区分、資格、勤務可能パターン、固定休など。</p>
+          <div class="actions"><label class="file-button primary">CSV読込<input id="importStaffCsv" type="file" accept=".csv,text/csv" /></label><a class="link-button" href="samples/staff.csv" download>サンプルCSV</a></div>
+        </article>
+        <article class="import-card">
+          <h3>2. 勤務パターン</h3>
+          <p>開始・終了時刻、休憩、必要人数、有資格者条件など。</p>
+          <div class="actions"><label class="file-button primary">CSV読込<input id="importPatternCsv" type="file" accept=".csv,text/csv" /></label><a class="link-button" href="samples/patterns.csv" download>サンプルCSV</a></div>
+        </article>
+        <article class="import-card">
+          <h3>3. 月次・職員別条件</h3>
+          <p>対象月ごとの希望休・固定休。staffIdを推奨、staffNameでも照合できます。</p>
+          <div class="actions"><label class="file-button primary">CSV読込<input id="importMonthlyStaffCsv" type="file" accept=".csv,text/csv" /></label><a class="link-button" href="samples/monthly-staff.csv" download>サンプルCSV</a></div>
+        </article>
+        <article class="import-card">
+          <h3>4. 月次・全体設定</h3>
+          <p>正規職員の休日数、祝日、6:45/11:30上限。</p>
+          <div class="actions"><label class="file-button primary">CSV読込<input id="importMonthlySettingsCsv" type="file" accept=".csv,text/csv" /></label><a class="link-button" href="samples/monthly-settings.csv" download>サンプルCSV</a></div>
+        </article>
+      </div>
+      <p class="note">複数値はCSVセル内で「|」区切りにします。例: P01|P02|P03、3|12|25。CSV読込後はPrivate職員DBへの「保存」を押すまでPrivateリポジトリには書き込まれません。</p>
+    </div>
+  </section>
 </main>
 
-<footer>実職員データの正本は private な gpts 側で管理。公開用リポジトリには個人データをコミットしません。</footer>
+<footer>実職員情報・個人別月次データの正本は private な plzsayyes3/childacare-staff。公開リポジトリには個人データやトークンをコミットしません。</footer>
 <script src="app.js"></script>
 <script src="staff-extensions.js"></script>
+<script src="csv-import.js"></script>
+<script src="private-repo.js"></script>
 </body>
 </html>
