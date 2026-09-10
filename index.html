@@ -28,15 +28,11 @@
       <input id="staffRepoToken" type="password" placeholder="github_pat_... / ghp_..." autocomplete="off" spellcheck="false" />
     </label>
     <div class="connection-actions">
-      <button id="checkPrivateRepo">接続確認</button>
-      <button id="loadPrivateMasters" class="primary">職員・パターン読込</button>
-      <button id="savePrivateMasters">職員・パターン保存</button>
-      <button id="loadPrivateMonth">今月を読込</button>
-      <button id="savePrivateMonth">今月を保存</button>
+      <button id="checkPrivateRepo" class="primary">接続する</button>
       <button id="clearPrivateToken">トークン消去</button>
     </div>
   </div>
-  <p class="security-note">トークンはlocalStorage・HTML・GitHubへ保存しません。入力後はこのタブのメモリだけに保持します。読込だけならPrivateリポジトリの Contents: Read、保存するなら Contents: Read and write が必要です。</p>
+  <p class="security-note">ここでは接続だけ行います。読込・保存は各画面の上部にあります。トークンはこのタブのメモリ上だけに保持し、localStorage等には保存しません。</p>
   <div id="privateRepoStatus"></div>
 </div>
 
@@ -51,6 +47,13 @@
   <div id="globalValidation"></div>
 
   <section id="tab-patterns" class="tab-panel active">
+    <div class="save-strip">
+      <div><strong>勤務パターンの保存</strong><span>今表示している勤務パターンと職員マスタを Private職員DB に保存します。</span></div>
+      <div class="save-strip-actions">
+        <button id="loadMastersFromPatterns" class="load-action">Privateから再読込</button>
+        <button id="saveMastersFromPatterns" class="save-action">Privateへ保存</button>
+      </div>
+    </div>
     <div class="panel">
       <div class="panel-head">
         <div><h2>勤務パターンDB</h2><p>勤務時間をパターン化し、スタッフから参照します。</p></div>
@@ -63,6 +66,13 @@
   </section>
 
   <section id="tab-staff" class="tab-panel">
+    <div class="save-strip">
+      <div><strong>職員マスタの保存</strong><span>スタッフの追加・修正後はここから Private職員DB に保存します。</span></div>
+      <div class="save-strip-actions">
+        <button id="loadPrivateMasters" class="load-action">Privateから再読込</button>
+        <button id="savePrivateMasters" class="save-action">職員・勤務パターンを保存</button>
+      </div>
+    </div>
     <div class="panel">
       <div class="panel-head">
         <div><h2>スタッフDB</h2><p>職種・資格・週勤務日数・基本勤務・勤務の固定度まで登録します。希望休は月次入力へ分離します。</p></div>
@@ -74,6 +84,13 @@
   </section>
 
   <section id="tab-monthly" class="tab-panel">
+    <div class="save-strip">
+      <div><strong>この月の保存</strong><span>希望休・固定休・休日表・当番表など、現在選択中の月を Private職員DB に保存します。</span></div>
+      <div class="save-strip-actions">
+        <button id="loadPrivateMonth" class="load-action">この月を再読込</button>
+        <button id="savePrivateMonth" class="save-action">この月をPrivateへ保存</button>
+      </div>
+    </div>
     <div class="panel">
       <div class="panel-head"><div><h2>月次設定</h2><p>今月だけの情報と生成条件を入力します。</p></div><span id="lockBadge" class="badge">編集中</span></div>
       <div class="form-row">
@@ -141,7 +158,8 @@
           <div class="actions"><label class="file-button primary">CSV読込<input id="importMonthlySettingsCsv" type="file" accept=".csv,text/csv" /></label><a class="link-button" href="samples/monthly-settings.csv" download>サンプルCSV</a></div>
         </article>
       </div>
-      <p class="note">複数値はCSVセル内で「|」区切りにします。例: P01|P02|P03、3|12|25。CSV読込後はPrivate職員DBへの「保存」を押すまでPrivateリポジトリには書き込まれません。</p>
+      <div class="csv-next-step"><strong>CSV読込後の保存</strong><span>職員・勤務パターンCSVは「スタッフ」または「勤務パターン」タブから保存。月次CSVは「月次シフト」タブから保存します。</span></div>
+      <p class="note">複数値はCSVセル内で「|」区切りにします。例: P01|P02|P03、3|12|25。CSV読込だけではPrivateリポジトリには書き込まれません。</p>
     </div>
   </section>
 </main>
