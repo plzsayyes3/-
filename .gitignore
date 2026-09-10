@@ -1,4 +1,4 @@
-# 実職員・月次データはこのリポジトリへコミットしない
+# 実職員・月次データはこのPublicリポジトリへコミットしない
 data/staff.json
 data/months/
 exports/
@@ -10,7 +10,7 @@ childcare-shift-data.json
 .env.*
 !.env.example
 
-# GitHub Actions / ローカルでprivate gptsを一時取得する場所
+# GitHub Actions / ローカルでprivate childacare-staffを一時取得する場所
 _private/
 
 # OS / editor
