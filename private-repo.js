@@ -9,7 +9,7 @@ function setPrivateRepoStatus(message,type='ok'){
   const el=$('#privateRepoStatus');if(!el)return;el.innerHTML=`<div class="${type}">${esc(message)}</div>`;
 }
 function captureToken(){staffRepoToken=String($('#staffRepoToken')?.value||'').trim();if($('#staffRepoToken'))$('#staffRepoToken').value='';return staffRepoToken}
-function requireToken(){if(!staffRepoToken)captureToken();if(!staffRepoToken)throw new Error('トークンを入力してください。');return staffRepoToken}
+function requireToken(){const typed=String($('#staffRepoToken')?.value||'').trim();if(typed)captureToken();if(!staffRepoToken)throw new Error('トークンを入力してください。');return staffRepoToken}
 function repoApiUrl(path=''){
   const repo=staffRepoName();if(!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo))throw new Error('リポジトリ名は owner/repo 形式で入力してください。');
   return `https://api.github.com/repos/${repo}${path}`;
@@ -31,7 +31,7 @@ async function ghWriteJson(path,obj,message){
   return ghFetch(repoApiUrl(`/contents/${path.split('/').map(encodeURIComponent).join('/')}`),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
 }
 
-async function checkPrivateRepo(){captureToken();await ghFetch(repoApiUrl());setPrivateRepoStatus(`接続OK: ${staffRepoName()}。トークンはこのタブのメモリ上だけに保持しています。`)}
+async function checkPrivateRepo(){requireToken();await ghFetch(repoApiUrl());setPrivateRepoStatus(`接続OK: ${staffRepoName()}。トークンはこのタブのメモリ上だけに保持しています。`)}
 async function loadPrivateMasters(){
   const [staffFile,patternFile]=await Promise.all([ghReadJson('data/staff.json'),ghReadJson('data/patterns.json')]);
   if(!Array.isArray(staffFile.json.staff))throw new Error('data/staff.json に staff 配列がありません。');
