@@ -68,7 +68,7 @@ async function ghWriteJson(path,obj,message,retry=true){
 async function checkPrivateRepo(){
   requireToken();
   const meta=await ghFetch(repoApiUrl());staffRepoDefaultBranch=meta.default_branch||'main';
-  setPrivateRepoStatus(`接続OK: ${staffRepoName()} / ${staffRepoDefaultBranch}。トークンはこのタブのメモリ上だけに保持しています。`);
+  setPrivateRepoStatus(`接続OK: ${staffRepoName()} / ${staffRepoDefaultBranch}。各タブ上部の「Privateへ保存」から保存できます。`);
 }
 async function loadPrivateMasters(){
   await ensureRepoMeta();
@@ -77,29 +77,35 @@ async function loadPrivateMasters(){
   if(!Array.isArray(patternFile.json.patterns))throw new Error('data/patterns.json に patterns 配列がありません。');
   const normalized=migrateLoaded({patterns:patternFile.json.patterns,staff:staffFile.json.staff,monthly:db.monthly});
   db.patterns=normalized.patterns;db.staff=normalized.staff;save();renderAll();
-  setPrivateRepoStatus(`職員${db.staff.length}名・勤務パターン${db.patterns.length}件をPrivateリポジトリから読み込みました。`);
+  setPrivateRepoStatus(`読込完了: 職員${db.staff.length}名・勤務パターン${db.patterns.length}件。ブラウザの作業コピーを更新しました。`);
 }
 async function savePrivateMasters(){
   const staffPayload={schemaVersion:SCHEMA_VERSION,updatedAt:new Date().toISOString(),staff:db.staff};
   const patternPayload={schemaVersion:SCHEMA_VERSION,updatedAt:new Date().toISOString(),patterns:db.patterns};
   await ghWriteJson('data/staff.json',staffPayload,'Update staff master from childcare-shift page');
   await ghWriteJson('data/patterns.json',patternPayload,'Update pattern master from childcare-shift page');
-  setPrivateRepoStatus(`職員DB・勤務パターンDBを ${staffRepoName()} に保存しました。`);
+  setPrivateRepoStatus(`保存完了: 職員DB・勤務パターンDBを ${staffRepoName()} に書き込みました。`);
 }
 async function loadPrivateMonth(){
   await ensureRepoMeta();
   const key=monthInfo().key;const file=await ghReadJson(`data/months/${key}.json`);const src=file.json.monthly||file.json.data||file.json;
-  db.monthly[key]=src;loadMonthState();save();renderAll();setPrivateRepoStatus(`${key} の月次データをPrivateリポジトリから読み込みました。`);
+  db.monthly[key]=src;loadMonthState();save();renderAll();setPrivateRepoStatus(`読込完了: ${key} の月次データをブラウザへ反映しました。`);
 }
 async function savePrivateMonth(){
   save();const key=monthInfo().key;const payload={schemaVersion:SCHEMA_VERSION,month:key,updatedAt:new Date().toISOString(),monthly:db.monthly[key]||currentMonthData()};
-  await ghWriteJson(`data/months/${key}.json`,payload,`Update monthly shift data ${key}`);setPrivateRepoStatus(`${key} の月次データを ${staffRepoName()} に保存しました。`);
+  await ghWriteJson(`data/months/${key}.json`,payload,`Update monthly shift data ${key}`);setPrivateRepoStatus(`保存完了: ${key} の月次データを ${staffRepoName()} に書き込みました。`);
 }
 function clearPrivateToken(){staffRepoToken='';staffRepoDefaultBranch='';if($('#staffRepoToken'))$('#staffRepoToken').value='';setPrivateRepoStatus('トークンをこのタブのメモリから消去しました。','warn')}
 
+function bindRepoButton(id,fn){
+  $('#'+id)?.addEventListener('click',async()=>{try{await fn()}catch(e){setPrivateRepoStatus(e.message||String(e),'error')}});
+}
 function bindPrivateRepo(){
-  const map=[['checkPrivateRepo',checkPrivateRepo],['loadPrivateMasters',loadPrivateMasters],['savePrivateMasters',savePrivateMasters],['loadPrivateMonth',loadPrivateMonth],['savePrivateMonth',savePrivateMonth]];
-  map.forEach(([id,fn])=>$('#'+id)?.addEventListener('click',async()=>{try{await fn()}catch(e){setPrivateRepoStatus(e.message||String(e),'error')}}));
+  ['checkPrivateRepo'].forEach(id=>bindRepoButton(id,checkPrivateRepo));
+  ['loadPrivateMasters','loadMastersFromPatterns'].forEach(id=>bindRepoButton(id,loadPrivateMasters));
+  ['savePrivateMasters','saveMastersFromPatterns'].forEach(id=>bindRepoButton(id,savePrivateMasters));
+  ['loadPrivateMonth'].forEach(id=>bindRepoButton(id,loadPrivateMonth));
+  ['savePrivateMonth'].forEach(id=>bindRepoButton(id,savePrivateMonth));
   $('#clearPrivateToken')?.addEventListener('click',clearPrivateToken);
   $('#staffRepoName')?.addEventListener('change',()=>{staffRepoDefaultBranch=''});
 }
