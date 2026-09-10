@@ -3,14 +3,14 @@ data/staff.json
 data/months/
 exports/
 *.csv
+!samples/*.csv
 childcare-shift-data.json
 
 # トークン・ローカル秘密情報はコミットしない
 .env
 .env.*
-!.env.example
 
-# GitHub Actions / ローカルでprivate childacare-staffを一時取得する場所
+# private childacare-staffを一時取得する場所
 _private/
 
 # OS / editor
