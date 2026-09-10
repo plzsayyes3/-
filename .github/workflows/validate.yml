@@ -17,11 +17,19 @@ jobs:
         run: |
           node --check app.js
           node --check staff-extensions.js
+          node --check csv-import.js
+          node --check private-repo.js
       - name: Check required files
         run: |
           test -f index.html
           test -f styles.css
           test -f staff-extensions.js
+          test -f csv-import.js
+          test -f private-repo.js
           test -f fixtures/demo-v3.json
+          test -f samples/staff.csv
+          test -f samples/patterns.csv
+          test -f samples/monthly-staff.csv
+          test -f samples/monthly-settings.csv
       - name: Validate demo JSON
         run: node -e "const f=require('./fixtures/demo-v3.json'); if(f.schemaVersion!==3) process.exit(1); console.log('demo schema v3 ok')"
