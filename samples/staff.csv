@@ -1,0 +1,4 @@
+id,name,employmentType,role,qualifications,weeklyWorkDays,weeklyDaysOff,fixedOffWeekdays,allowedPatternIds,preferredPatternIds,defaultPatternId,shiftPolicy,requestedOffLimit,active,notes
+S101,サンプル保育士A,正規保育士,保育士,保育士,,,日,P01|P02|P03|P04|P05|P06|P07,P03|P06,,flexible,,true,サンプルデータ
+S102,サンプル保育士B,非正規保育士,保育士,保育士,4,,水,P04,P04,P04,fixed,2,true,週4勤務の例
+S103,サンプル看護師,正規看護師,看護師,看護師,,,日,P01|P02|P03|P04|P05|P06|P07,P04,P04,prefer-fixed,,true,原則8:30の例
