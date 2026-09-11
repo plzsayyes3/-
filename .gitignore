@@ -1,6 +1,5 @@
-# 実職員・月次データはこのPublicリポジトリへコミットしない
-data/staff.json
-data/months/
+# 実職員・月次・個別勤務データはこのPublicリポジトリへコミットしない
+data/
 exports/
 *.csv
 !samples/*.csv
