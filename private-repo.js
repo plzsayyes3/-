@@ -19,7 +19,7 @@ function recoveryInfo(error,actionLabel,actionKind){
   if(status===403)return {title:'トークンの権限が足りません',summary:isSave?'保存には childacare-staff への Contents: Read and write が必要です。':'読込には childacare-staff への Contents: Read が必要です。',steps:[`Fine-grained token の対象に ${staffRepoName()} が含まれているか確認する`,isSave?'Repository permissions → Contents を Read and write にする':'Repository permissions → Contents を Read-only 以上にする','トークンを上部へ貼り直す','「接続を再試行」を押す'],focusToken:true,retryConnection:true,showTokenSettings:true};
   if(status===404&&actionKind==='month-load')return {title:'この月のファイルはまだありません',summary:'初回の月なら正常です。月次入力後に「この月をPrivateへ保存」を押すと新規作成されます。',steps:['対象月が正しいか確認する','月次入力・休日生成を進める','「この月をPrivateへ保存」で新規作成する']};
   if(status===404)return {title:'Privateリポジトリまたは必要ファイルが見つかりません',summary:'リポジトリ名、トークン対象、必要JSONのいずれかを確認します。',steps:[`Private職員DBが ${staffRepoName()} になっているか確認する`,`トークンの対象に ${staffRepoName()} が含まれているか確認する`,'接続確認を行う','接続OKなら data/staff.json と data/patterns.json の存在を確認する'],retryConnection:true,showTokenSettings:true};
-  if(status===409)return {title:'別の更新を検出したため保存を停止しました',summary:'GitHub上の変更を自動上書きしない安全側の動作です。ブラウザ上の編集内容は残っています。',steps:['「JSONバックアップ」を押して現在の作業内容を保存する',actionKind==='month-save'?'「この月をPrivateから再読込」で最新状態を確認する':'「職員・勤務パターンをPrivateから再読込」で最新状態を確認する','必要な変更だけもう一度反映する','保存を実行する'],backup:true,reloadKind:actionKind==='month-save'?'month':'masters'};
+  if(status===409)return {title:'既存データの誤上書きを防ぐため保存を停止しました',summary:'Private側をまだ読み込んでいないか、読み込み後にGitHub上のデータが変わっています。ブラウザ上の編集内容は残っています。',steps:['「JSONバックアップ」を押して現在の作業内容を保存する',actionKind==='month-save'?'「この月をPrivateから再読込」で最新状態を確認する':'「職員・勤務パターンをPrivateから再読込」で最新状態を確認する','必要な変更やCSVをもう一度反映する','保存を実行する'],backup:true,reloadKind:actionKind==='month-save'?'month':'masters'};
   if(status===422)return {title:'GitHubが保存内容を受け付けませんでした',summary:'保存先ブランチ、SHA、送信内容のいずれかに問題がある可能性があります。',steps:['接続確認を実行する','整合性チェックを実行する','問題がなければ同じ保存を再試行する'],retryConnection:true,retryLast:true};
   if(message.includes('JSON')||error instanceof SyntaxError)return {title:'Private側のJSONを読み取れません',summary:'対象JSONの形式が壊れている可能性があります。',steps:['Privateリポジトリの対象JSONを確認する','括弧抜け・末尾カンマ等を修正する','同じ読込操作を再試行する'],retryLast:true};
   return {title:'操作を完了できませんでした',summary:'下の順番で切り分けます。解決しなければ技術情報をそのまま共有してください。',steps:['接続確認を行う','同じ操作を1回だけ再試行する','改善しなければ「技術情報」をコピーする'],retryConnection:true,retryLast:true};
@@ -60,11 +60,11 @@ async function loadPrivateMasters(){
 }
 async function savePrivateMasters(){
   assertLocalSaveValid();
-  await ghAssertUnchanged(['data/staff.json','data/patterns.json']);
+  await ghAssertUnchanged(['data/staff.json','data/patterns.json'],{requireBaselineForExisting:true});
   const staffPayload={schemaVersion:SCHEMA_VERSION,updatedAt:new Date().toISOString(),staff:db.staff.map(normalizeStaff)};
   const patternPayload={schemaVersion:SCHEMA_VERSION,updatedAt:new Date().toISOString(),patterns:db.patterns.map(normalizePattern)};
   const saved=[];
-  try{await ghWriteJson('data/staff.json',staffPayload,'Update staff master from childcare-shift page');saved.push('staff.json');await ghWriteJson('data/patterns.json',patternPayload,'Update pattern master from childcare-shift page');saved.push('patterns.json')}
+  try{await ghWriteJson('data/staff.json',staffPayload,'Update staff master from childcare-shift page',{allowCreate:false});saved.push('staff.json');await ghWriteJson('data/patterns.json',patternPayload,'Update pattern master from childcare-shift page',{allowCreate:false});saved.push('patterns.json')}
   catch(e){if(saved.length)e.message+=`（${saved.join(', ')} は保存済み）`;throw e}
   setPrivateRepoStatus(`保存完了: 職員DB・勤務パターンDBを ${staffRepoName()} に書き込みました。`);
 }
@@ -75,7 +75,7 @@ async function loadPrivateMonth(){
 }
 async function savePrivateMonth(){
   assertLocalSaveValid();save();const key=monthInfo().key,path=`data/months/${key}.json`;
-  await ghAssertUnchanged([path]);const payload={schemaVersion:SCHEMA_VERSION,month:key,updatedAt:new Date().toISOString(),monthly:normalizeMonth(db.monthly[key]||currentMonthData())};
+  await ghAssertUnchanged([path],{requireBaselineForExisting:true});const payload={schemaVersion:SCHEMA_VERSION,month:key,updatedAt:new Date().toISOString(),monthly:normalizeMonth(db.monthly[key]||currentMonthData())};
   await ghWriteJson(path,payload,`Update monthly shift data ${key}`);setPrivateRepoStatus(`保存完了: ${key} の月次データを ${staffRepoName()} に書き込みました。`);
 }
 function clearPrivateToken(){clearPrivateConnection();setPrivateRepoStatus('トークンをこのタブのメモリから消去しました。再接続する場合は新しいトークンを入力してください。','warn')}
