@@ -25,6 +25,8 @@ jobs:
           node --check bootstrap.js
       - name: Run scheduler regression tests
         run: node tests/scheduler-core.test.js
+      - name: Run module load and migration smoke test
+        run: node tests/module-load.test.js
       - name: Check required files
         run: |
           test -f index.html
@@ -37,6 +39,8 @@ jobs:
           test -f github-client.js
           test -f private-repo.js
           test -f bootstrap.js
+          test -f tests/scheduler-core.test.js
+          test -f tests/module-load.test.js
           test -f fixtures/demo-v3.json
           test -f fixtures/demo-v4.json
           test -f samples/staff.csv
