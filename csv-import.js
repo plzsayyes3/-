@@ -22,6 +22,7 @@ function parseCsvText(text){
 function requireHeaders(doc,required){const missing=required.filter(h=>!doc.headers.includes(h));if(missing.length)throw new Error(`CSVに必要な列がありません: ${missing.join(', ')}`)}
 function splitList(v){return String(v||'').split(/[|｜;]/).map(x=>x.trim()).filter(Boolean)}
 function nullableNumber(v){if(String(v??'').trim()==='')return null;const n=Number(v);return Number.isFinite(n)?n:NaN}
+function numberOrDefault(v,defaultValue){return String(v??'').trim()===''?defaultValue:Number(v)}
 function parseBool(v,defaultValue=true){const s=String(v??'').trim().toLowerCase();if(!s)return defaultValue;if(['true','1','yes','y','on','有効','あり'].includes(s))return true;if(['false','0','no','n','off','無効','なし'].includes(s))return false;throw new Error(`真偽値を認識できません: ${v}`)}
 function parseMonthKey(v,row){const month=String(v||'').trim();if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw new Error(`${row}行目: month は YYYY-MM 形式です。`);return month}
 function monthMaxDay(month){const [y,m]=month.split('-').map(Number);return daysInMonthFor(y,m)}
@@ -97,7 +98,7 @@ async function importMonthlySettingsCsv(file){
   doc.rows.forEach(r=>{
     try{
       const month=parseMonthKey(r.month,r._row),max=monthMaxDay(month);if(db.monthly[month]?.locked)throw new Error(`${r._row}行目: ${month} は休日確定済みです。確定解除後に読み込んでください。`);
-      const regularMonthlyOff=Number(r.regularMonthlyOff??9),edgeShiftMax=Number(r.edgeShiftMax??3);
+      const regularMonthlyOff=numberOrDefault(r.regularMonthlyOff,9),edgeShiftMax=numberOrDefault(r.edgeShiftMax,3);
       if(!Number.isFinite(regularMonthlyOff)||regularMonthlyOff<0||regularMonthlyOff>max)throw new Error(`${r._row}行目: regularMonthlyOff は0〜${max}です。`);
       if(!Number.isFinite(edgeShiftMax)||edgeShiftMax<1||edgeShiftMax>max)throw new Error(`${r._row}行目: edgeShiftMax は1〜${max}です。`);
       updates.push({month,regularMonthlyOff,holidays:parseDayList(r.holidays,month,r._row,'holidays'),edgeShiftMax});
