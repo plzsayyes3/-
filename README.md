@@ -1,306 +1,188 @@
 # 保育園シフト作成 PoC
 
-保育園の月間シフトを、**休みの自動配置 → 人による修正 → 休日確定 → 当番の自動配置**の2段階で作るためのプロトタイプです。
+保育園の月間シフトを、**休みの自動配置 → 人による修正 → 休日確定 → 当番の自動配置**の2段階で作るプロトタイプです。
 
 公開URL: https://plzsayyes3.github.io/childcare-shift/
 
-## リポジトリ構成
+## データの置き場所
 
 ```text
 plzsayyes3/childacare-staff   Private
   ├─ data/staff.json          職員マスタ正本
   ├─ data/patterns.json       勤務パターン正本
-  └─ data/months/YYYY-MM.json 月次の希望休・固定休・生成状態
+  └─ data/months/YYYY-MM.json 月次データ
           ▲
-          │ GitHub API
-          │ ページで本人が入力したFine-grained PAT
+          │ GitHub API + ページで本人が入力したFine-grained PAT
           ▼
 plzsayyes3/childcare-shift    Public / GitHub Pages
-  ├─ UI
-  ├─ CSVインポート
-  ├─ シフト生成ロジック
-  └─ 匿名サンプルのみ
+  └─ UI・CSV取込・生成ロジック・匿名サンプルのみ
 
 plzsayyes3/gpts               Private
   └─ プロジェクト仕様・設計記録
 ```
 
-実職員情報の正本は `childacare-staff` です。Publicな `childcare-shift` には実名入りデータをcommitしません。
+実職員情報は `childacare-staff` にだけ保存します。Publicな本リポジトリへ実名入りJSON/CSVやトークンをcommitしません。
 
-## ページ上でGitHubトークンを設定する方式
+## コード構成（schema v4）
 
-ページ上部の **Private職員DB** 欄を使います。
+2026-09-11のコードレビューで、旧 `app.js` と `staff-extensions.js` の継ぎ足し構造を廃止し、責務ごとに分離しました。
 
-1. リポジトリ名は通常 `plzsayyes3/childacare-staff` のままにする
-2. GitHubトークンを入力
-3. `接続する`
-4. 各タブの `Privateから再読込` で必要なデータを読む
-5. 編集後、各タブの大きな `Privateへ保存` ボタンで保存する
-6. 作業後に `トークン消去`
+```text
+state.js             状態・schema v4・migration・validation
+scheduler-core.js    DOM非依存の休日/当番生成ロジック
+scheduler.js         scheduler-core と画面状態の橋渡し
+ui.js                描画・画面操作・JSON/CSV出力
+csv-import.js        CSV解析・検証・取込
+github-client.js     GitHub API・PAT・SHA競合検知
+private-repo.js      Private DBの読込/保存フロー・復旧UI
+bootstrap.js         起動順序だけを担当
+styles.css           表示
+```
 
-### トークンの保存方法
+`state.js` 以外から状態スキーマを勝手に追加せず、生成規則は `scheduler-core.js` に集約します。`scheduler-core.js` はNodeからも実行でき、回帰テスト対象です。
 
-トークン値は以下には保存しません。
+旧schema v2/v3のローカルデータやJSONは読込時にv4へ正規化します。Private側のv3ファイルも読込可能で、次回保存時にv4形式で保存されます。
 
-- GitHubリポジトリ
-- HTML / JavaScriptソース
-- localStorage
-- sessionStorage
-- JSON / CSV
+## Private職員DBの使い方
 
-入力したトークンは、そのブラウザタブのJavaScriptメモリ上だけに保持します。入力欄からも取得後に消します。タブを閉じるか `トークン消去` を押すと保持値は消えます。
+ページ上部でリポジトリ名とGitHubトークンを設定します。
 
-### 推奨トークン
+1. `plzsayyes3/childacare-staff` を指定
+2. Fine-grained PATを入力
+3. **接続する**
+4. 編集前に各タブの **Privateから再読込** を実行
+5. 編集・CSV取込
+6. **Privateへ保存**
+7. 作業後に **トークン消去**
 
-Fine-grained Personal Access Tokenを推奨します。
+### トークン
 
-読込だけの場合:
+トークンはGitHubリポジトリ、HTML、localStorage、sessionStorage、JSON、CSVには保存しません。開いているタブのJavaScriptメモリ上だけに保持します。
+
+推奨権限:
 
 ```text
 Repository access: plzsayyes3/childacare-staff のみ
-Contents: Read-only
+Contents: Read and write   # 保存する場合
 ```
 
-ページからPrivateリポジトリへ保存もする場合:
+読込だけなら `Contents: Read-only` で足ります。用途専用のFine-grained PATを使用してください。
+
+## 保存時の安全策
+
+既存Privateファイルを**一度も読み込まずに上書きすることはできません**。これは、CSVだけを読み込んだブラウザ作業コピーで職員DB全体を誤置換する事故を防ぐためです。
+
+保存時は、読込時のファイルSHAとGitHub上の現在SHAを比較します。
 
 ```text
-Repository access: plzsayyes3/childacare-staff のみ
-Contents: Read and write
+一致       → 保存
+不一致     → 409として停止。自動上書きしない
+基準SHAなし + 既存ファイル → 停止して先に再読込を要求
+基準SHAなし + 新規月ファイル → 新規作成可能
 ```
 
-必要以上のリポジトリや権限を与えないでください。可能なら有効期限も短めにします。
+409時は現在のブラウザ編集を保持し、JSONバックアップ → Private再読込 → 必要な変更を再反映 → 保存、の順に案内します。
 
-### セキュリティ上の注意
+職員マスタと勤務パターンは現在2ファイルへ順番に保存するため、通信断等で片方だけ保存される可能性は残っています。画面では部分保存を明示します。将来は1commitでの原子的更新を検討します。
 
-この方式では、トークンをPublicリポジトリへ埋め込むことはありませんが、**入力中・利用中のトークンはそのブラウザページのJavaScriptから利用可能**です。ブラウザ拡張やXSS等の影響を完全に排除できる方式ではありません。
+## エラー復旧
 
-そのため、この用途専用で `childacare-staff` だけに限定したFine-grained tokenを使います。メインアカウント全体へ広い権限を持つPATは使いません。
+GitHub APIエラーはページ内で **原因 → 復旧手順 → 次に押すボタン** を表示します。
 
-## エラーが出たときの復旧導線
-
-GitHub APIエラーは、単なるエラー文字列ではなく、ページ内に **「原因 → 直す手順 → 次に押すボタン」** を表示します。
-
-主な扱い:
-
-| 状態 | 画面で案内する内容 |
-|---|---|
-| トークン未入力 | トークン欄へ戻る → 接続再試行 |
-| 401 | トークン無効・期限切れの確認 → 再入力 → 接続再試行 |
-| 403 | `childacare-staff` が対象か確認 → Contents権限確認 → 再入力 |
-| 404 | リポジトリ名・トークン対象・必要JSONの存在確認 |
-| 月次読込の404 | その月が初回なら正常。月次データを作って「この月をPrivateへ保存」で新規作成 |
-| 409 | ブラウザの編集内容を保持したまま同じ操作を再試行。内部でも最新SHAを取り直して自動再試行 |
-| 422 | 接続再確認 → 整合性チェック → 保存再試行 |
-
-409などで保存に失敗しても、ブラウザ上の作業コピーは直ちには消えません。ページを閉じたりPrivateから再読込したりする前に、必要なら `JSON出力` でバックアップできます。
-
-復旧パネルの下部には `技術情報` を折りたたんで表示します。画面内の手順で解消しない場合は、その内容をそのまま共有すれば原因を追えます。
-
-## Private職員DBとの読込・保存
-
-### 職員・パターン読込
-
-以下をGitHub APIから読み込みます。
-
-```text
-data/staff.json
-data/patterns.json
-```
-
-ブラウザの作業コピーへ反映します。
-
-### 職員・パターン保存
-
-現在のブラウザ上のスタッフDB・勤務パターンDBを、同じ2ファイルへcommitします。書込権限のあるトークンが必要です。
-
-### 今月を読込 / 保存
-
-対象月が `2026-10` なら以下を使用します。
-
-```text
-data/months/2026-10.json
-```
-
-希望休・固定休・休日生成状態・当番生成状態など、その月に紐づくデータを保存します。
+- 401: トークン無効・期限切れ
+- 403: リポジトリ対象/Contents権限不足
+- 404: リポジトリ・必要JSONなし。月次初回404は新規作成へ誘導
+- 409: 未読込または競合。上書きせず停止
+- 422: 保存内容/ブランチ等の不整合
+- ローカル入力エラー: Privateへ送信する前に停止
 
 ## CSVインポート
 
-ページに **CSVインポート** タブがあります。行数に上限を設けず、用途別に4種類のCSVを読み込めます。
-
-CSV読込はまずブラウザの作業コピーだけを更新します。Privateリポジトリへ反映するには、その後に上部の保存ボタンを押します。
-
-### 1. 職員マスタCSV
-
-サンプル: `samples/staff.csv`
-
-列:
+用途別に4種類あります。行数は固定していません。
 
 ```text
-id
-name
-employmentType
-role
-qualifications
-weeklyWorkDays
-weeklyDaysOff
-fixedOffWeekdays
-allowedPatternIds
-preferredPatternIds
-defaultPatternId
-shiftPolicy
-requestedOffLimit
-active
-notes
+samples/staff.csv             職員マスタ
+samples/patterns.csv          勤務パターン
+samples/monthly-staff.csv     月次・職員別条件
+samples/monthly-settings.csv  月次・全体設定
 ```
 
-複数値は `|` 区切りです。
+複数値は `|` 区切りです。CSV読込時にヘッダー重複、必須列、数値範囲、時刻、曜日、対象月の日付範囲などを検証します。
 
-例:
+CSVはブラウザ作業コピーを更新するだけです。Privateへ反映するには、その後に対応タブから保存します。安全のため、**最初にPrivateから再読込してからCSVを取り込む**運用を推奨します。
+
+### 職員CSV列
 
 ```text
-保育士|看護師
-P01|P02|P03
-月|水
+id,name,employmentType,role,qualifications,weeklyWorkDays,weeklyDaysOff,fixedOffWeekdays,allowedPatternIds,preferredPatternIds,defaultPatternId,shiftPolicy,requestedOffLimit,active,notes
 ```
 
-同一 `id` が既に存在する場合は更新、存在しないIDは追加します。
-
-### 2. 勤務パターンCSV
-
-サンプル: `samples/patterns.csv`
-
-列:
+### 勤務パターンCSV列
 
 ```text
-id
-name
-start
-end
-workMinutes
-breakMinutes
-requiredCount
-regularQualifiedRequired
-active
-category
+id,name,start,end,workMinutes,breakMinutes,requiredCount,regularQualifiedRequired,active,category
 ```
 
-同一 `id` は更新、未登録IDは追加です。
-
-### 3. 月次・職員別条件CSV
-
-サンプル: `samples/monthly-staff.csv`
-
-列:
+### 月次・職員別CSV列
 
 ```text
-month
-staffId
-staffName
-requestedOff
-fixedOff
+month,staffId,staffName,requestedOff,fixedOff
 ```
 
-`month` は `YYYY-MM`。職員照合は `staffId` を優先し、未入力なら完全一致する `staffName` を使います。
-
-日付の複数指定例:
+### 月次・全体設定CSV列
 
 ```text
-3|12|25
+month,regularMonthlyOff,holidays,edgeShiftMax
 ```
 
-休日確定済みの月へは上書きせず、確定解除を要求します。
-
-### 4. 月次・全体設定CSV
-
-サンプル: `samples/monthly-settings.csv`
-
-列:
-
-```text
-month
-regularMonthlyOff
-holidays
-edgeShiftMax
-```
-
-祝日の複数指定も `|` 区切りです。
-
-## CSVサンプル一覧
-
-```text
-samples/staff.csv
-samples/patterns.csv
-samples/monthly-staff.csv
-samples/monthly-settings.csv
-```
-
-サンプルには実職員情報を含めません。PagesのCSVインポート画面から各ファイルをそのままダウンロードできます。
-
-## 現在の画面
-
-1. **勤務パターン** — 開始・終了・必要人数・資格条件
-2. **スタッフ** — 雇用区分・職種・資格・勤務条件
-3. **月次シフト** — 希望休・固定休・休日生成・当番生成
-4. **CSVインポート** — 一括データ投入
-
-JSONスキーマは現在 **v3** です。
-
-## 基本勤務パターン
-
-| ID | 開始 | 終了 | 必要人数 |
-|---|---|---|---:|
-| P01 | 06:45 | 15:30 | 2 |
-| P02 | 07:30 | 16:15 | 1 |
-| P03 | 08:00 | 16:45 | 2 |
-| P04 | 08:30 | 17:15 | 3 |
-| P05 | 09:00 | 17:45 | 2 |
-| P06 | 09:45 | 18:30 | 5 |
-| P07 | 11:30 | 20:15 | 2 |
-
-正規保育士の標準勤務は実働8時間＋休憩45分です。
-
-## 現在反映している主な条件
+## 現在の主な生成条件
 
 - 日曜・祝日は休園
-- 06:45 は正規保育士かつ保育士資格2名
-- 11:30 は正規保育士かつ保育士資格2名
-- 08:30 時点で最低8名
-- 正規保育士は月の共通休日日数を設定
-- 非正規等は週休数・週勤務日数・固定休曜日を設定可能
-- 希望休はソフト条件
-- 今月だけの固定休は絶対条件
-- 基本勤務・優先勤務・勤務可能パターンを設定可能
-- `flexible / prefer-fixed / fixed` の勤務ポリシー
-- 看護師・事務員等の職種・資格
-- 条件不足の警告
-- JSON入出力
-- CSV出力 / CSV入力
+- 06:45 は正規保育士かつ保育士資格者2名
+- 11:30 は正規保育士かつ保育士資格者2名
+- 08:30時点で最低8名
+- 正規職員は共通の月休日日数を使用
+- 非正規等は週勤務日数/週休数/固定休曜日を設定可能
+- 希望休はソフト条件、今月だけの固定休は絶対条件
+- `flexible / prefer-fixed / fixed` を区別
+- 優先勤務パターンを考慮
+- 6:45 と11:30の上限は現在**各シフト別**に判定
+- 看護師資格だけでは6:45/11:30の「正規保育士資格者」には数えない
+
+## テスト
+
+生成ロジックは `tests/scheduler-core.test.js` で回帰テストします。
+
+```bash
+node tests/scheduler-core.test.js
+```
+
+GitHub Actionsでは全JavaScriptの構文チェック、scheduler回帰テスト、fixture確認を行います。
+
+主な回帰テスト:
+
+- 正規看護師も正規職員の月休日数対象になる
+- 看護師資格のみでは保育士資格条件を満たさない
+- 6:45 / 11:30上限は合算ではなく各別
+- `fixed` と `prefer-fixed` の違い
+- 優先パターン
+- 同じ入力に対する決定性
+
+## 未確定の業務ルール
+
+コードレビューで勝手に決めず、現行挙動を明示して残している項目です。
+
+- 正規職員の月休日数に日曜・祝日の休園日を含めるか
+- 非正規の「週」の区切りを暦週（月〜日等）にするか。現在は月初から7日区切り
+- 6:45 / 11:30 の上限値そのもの（現在初期値3）
+- 土曜日専用ルール
+- 研修・会議等の勤務イベント
+- 当番セルの直接修正・ロック
+- 労働時間/連続勤務/就業規則の厳密チェック
+- 貪欲法から数理最適化へ移行するか
 
 ## Publicリポジトリの安全策
 
-`.gitignore` で以下をPublicリポジトリから除外しています。
-
-```text
-data/staff.json
-data/months/
-exports/
-*.csv
-childcare-shift-data.json
-.env
-.env.*
-_private/
-```
-
-ただし `samples/` 配下の匿名CSVはPublicで管理します。
-
-## 現段階の未確定事項
-
-- 労働時間・連続勤務・就業規則に応じた厳密な労務チェック
-- 06:45 / 11:30 上限が各別か合算か
-- 希望休を実現できない場合の最適化重み
-- 土曜日専用ルール
-- 研修・会議等の勤務イベント
-- 当番セルの直接手修正とロック
-- 数理最適化による公平性改善
+`.gitignore` で個人データや秘密情報を除外します。匿名の `samples/` と `fixtures/` のみPublicで管理します。
 
 mainへのpushでGitHub Pagesへ自動デプロイします。
