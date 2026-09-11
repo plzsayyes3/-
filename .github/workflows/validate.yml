@@ -9,27 +9,41 @@ permissions:
   contents: read
 
 jobs:
-  syntax:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Check JavaScript syntax
         run: |
-          node --check app.js
-          node --check staff-extensions.js
+          node --check state.js
+          node --check scheduler-core.js
+          node --check scheduler.js
+          node --check ui.js
           node --check csv-import.js
+          node --check github-client.js
           node --check private-repo.js
+          node --check bootstrap.js
+      - name: Run scheduler regression tests
+        run: node tests/scheduler-core.test.js
       - name: Check required files
         run: |
           test -f index.html
           test -f styles.css
-          test -f staff-extensions.js
+          test -f state.js
+          test -f scheduler-core.js
+          test -f scheduler.js
+          test -f ui.js
           test -f csv-import.js
+          test -f github-client.js
           test -f private-repo.js
+          test -f bootstrap.js
           test -f fixtures/demo-v3.json
+          test -f fixtures/demo-v4.json
           test -f samples/staff.csv
           test -f samples/patterns.csv
           test -f samples/monthly-staff.csv
           test -f samples/monthly-settings.csv
-      - name: Validate demo JSON
-        run: node -e "const f=require('./fixtures/demo-v3.json'); if(f.schemaVersion!==3) process.exit(1); console.log('demo schema v3 ok')"
+      - name: Validate fixture versions
+        run: |
+          node -e "const f=require('./fixtures/demo-v3.json'); if(f.schemaVersion!==3) process.exit(1); console.log('legacy demo schema v3 ok')"
+          node -e "const f=require('./fixtures/demo-v4.json'); if(f.schemaVersion!==4||f.db?.schemaVersion!==4) process.exit(1); console.log('canonical demo schema v4 ok')"
