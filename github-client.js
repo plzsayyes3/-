@@ -24,6 +24,7 @@ function githubHeaders(){return {'Accept':'application/vnd.github+json','Authori
 function decodeBase64Utf8(s){const bin=atob(String(s||'').replace(/\n/g,''));const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes)}
 function encodeBase64Utf8(s){const bytes=new TextEncoder().encode(String(s));let bin='';const chunk=0x8000;for(let i=0;i<bytes.length;i+=chunk)bin+=String.fromCharCode(...bytes.subarray(i,i+chunk));return btoa(bin)}
 function contentApiPath(path){return `/contents/${path.split('/').map(encodeURIComponent).join('/')}`}
+function hasPrivateBaseline(path){return Object.prototype.hasOwnProperty.call(privateFileBaselines,path)}
 
 class GitHubApiError extends Error{
   constructor(status,statusText,body){
@@ -51,18 +52,23 @@ async function ghCurrentSha(path){
   try{return (await ghFetch(repoApiUrl(contentApiPath(path)))).sha}
   catch(e){if(e instanceof GitHubApiError&&e.status===404)return null;throw e}
 }
-async function ghAssertUnchanged(paths){
+async function ghAssertUnchanged(paths,{requireBaselineForExisting=false}={}){
   for(const path of paths){
-    if(!Object.prototype.hasOwnProperty.call(privateFileBaselines,path))continue;
-    const current=await ghCurrentSha(path),baseline=privateFileBaselines[path];
-    if(current!==baseline)throw new GitHubApiError(409,'Conflict',{message:`${path} は読み込み後にGitHub上で更新されています。上書きせず停止しました。`});
+    const current=await ghCurrentSha(path);
+    if(!hasPrivateBaseline(path)){
+      if(requireBaselineForExisting&&current!==null){
+        throw new GitHubApiError(409,'Conflict',{message:`${path} は既存ファイルですが、このタブでまだ読み込まれていません。誤上書きを防ぐため保存を停止しました。`});
+      }
+      continue;
+    }
+    if(current!==privateFileBaselines[path])throw new GitHubApiError(409,'Conflict',{message:`${path} は読み込み後にGitHub上で更新されています。上書きせず停止しました。`});
   }
 }
-async function ghWriteJson(path,obj,message){
+async function ghWriteJson(path,obj,message,{allowCreate=true}={}){
   await ensureRepoMeta();
-  let sha;
-  if(Object.prototype.hasOwnProperty.call(privateFileBaselines,path))sha=privateFileBaselines[path];
-  else sha=await ghCurrentSha(path);
+  let sha=hasPrivateBaseline(path)?privateFileBaselines[path]:await ghCurrentSha(path);
+  if(sha&&!hasPrivateBaseline(path))throw new GitHubApiError(409,'Conflict',{message:`${path} を保存する前にPrivateから読み込んでください。既存データの誤上書きを防ぐため停止しました。`});
+  if(!sha&&!allowCreate)throw new GitHubApiError(404,'Not Found',{message:`${path} が存在しません。`});
   const payload={message,content:encodeBase64Utf8(JSON.stringify(obj,null,2)),branch:staffRepoDefaultBranch};
   if(sha)payload.sha=sha;
   const result=await ghFetch(repoApiUrl(contentApiPath(path)),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
