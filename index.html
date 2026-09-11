@@ -75,7 +75,7 @@
     </div>
     <div class="panel">
       <div class="panel-head">
-        <div><h2>スタッフDB</h2><p>職種・資格・週勤務日数・基本勤務・勤務の固定度まで登録します。希望休は月次入力へ分離します。</p></div>
+        <div><h2>スタッフDB</h2><p>職種・資格・週勤務日数・週休数・基本勤務・勤務の固定度まで登録します。希望休は月次入力へ分離します。</p></div>
         <button id="addStaff" class="primary">＋ スタッフ追加</button>
       </div>
       <div id="staffValidation"></div>
@@ -95,11 +95,11 @@
       <div class="panel-head"><div><h2>月次設定</h2><p>今月だけの情報と生成条件を入力します。</p></div><span id="lockBadge" class="badge">編集中</span></div>
       <div class="form-row">
         <label>対象月<input id="month" type="month" /></label>
-        <label>正規保育士の月休日日数<input id="regularMonthlyOff" type="number" min="0" max="31" value="9" /></label>
+        <label>正規職員の月休日日数<input id="regularMonthlyOff" type="number" min="0" max="31" value="9" /></label>
         <label>祝日（日付をカンマ区切り）<input id="holidays" placeholder="例: 21,22" /></label>
         <label>6:45 / 11:30 各上限<input id="edgeShiftMax" type="number" min="1" max="31" value="3" /></label>
       </div>
-      <p class="note">6:45 / 11:30 の上限定義は暫定で「各シフト別」。最終業務ルールは未確定のままです。</p>
+      <p class="note">6:45 / 11:30 は現在「各シフト別」に上限判定します。上限値そのものは暫定です。</p>
     </div>
 
     <div class="panel">
@@ -138,23 +138,19 @@
       <div id="csvImportStatus"></div>
       <div class="import-grid">
         <article class="import-card">
-          <h3>1. 職員マスタ</h3>
-          <p>氏名、雇用区分、資格、勤務可能パターン、固定休など。</p>
+          <h3>1. 職員マスタ</h3><p>氏名、雇用区分、資格、勤務可能パターン、固定休など。</p>
           <div class="actions"><label class="file-button primary">CSV読込<input id="importStaffCsv" type="file" accept=".csv,text/csv" /></label><a class="link-button" href="samples/staff.csv" download>サンプルCSV</a></div>
         </article>
         <article class="import-card">
-          <h3>2. 勤務パターン</h3>
-          <p>開始・終了時刻、休憩、必要人数、有資格者条件など。</p>
+          <h3>2. 勤務パターン</h3><p>開始・終了時刻、休憩、必要人数、有資格者条件など。</p>
           <div class="actions"><label class="file-button primary">CSV読込<input id="importPatternCsv" type="file" accept=".csv,text/csv" /></label><a class="link-button" href="samples/patterns.csv" download>サンプルCSV</a></div>
         </article>
         <article class="import-card">
-          <h3>3. 月次・職員別条件</h3>
-          <p>対象月ごとの希望休・固定休。staffIdを推奨、staffNameでも照合できます。</p>
+          <h3>3. 月次・職員別条件</h3><p>対象月ごとの希望休・固定休。staffIdを推奨、staffNameでも照合できます。</p>
           <div class="actions"><label class="file-button primary">CSV読込<input id="importMonthlyStaffCsv" type="file" accept=".csv,text/csv" /></label><a class="link-button" href="samples/monthly-staff.csv" download>サンプルCSV</a></div>
         </article>
         <article class="import-card">
-          <h3>4. 月次・全体設定</h3>
-          <p>正規職員の休日数、祝日、6:45/11:30上限。</p>
+          <h3>4. 月次・全体設定</h3><p>正規職員の休日数、祝日、6:45/11:30上限。</p>
           <div class="actions"><label class="file-button primary">CSV読込<input id="importMonthlySettingsCsv" type="file" accept=".csv,text/csv" /></label><a class="link-button" href="samples/monthly-settings.csv" download>サンプルCSV</a></div>
         </article>
       </div>
@@ -165,9 +161,13 @@
 </main>
 
 <footer>実職員情報・個人別月次データの正本は private な plzsayyes3/childacare-staff。公開リポジトリには個人データやトークンをコミットしません。</footer>
-<script src="app.js"></script>
-<script src="staff-extensions.js"></script>
+<script src="state.js"></script>
+<script src="scheduler-core.js"></script>
+<script src="scheduler.js"></script>
+<script src="ui.js"></script>
 <script src="csv-import.js"></script>
+<script src="github-client.js"></script>
 <script src="private-repo.js"></script>
+<script src="bootstrap.js"></script>
 </body>
 </html>
