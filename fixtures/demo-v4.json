@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 4,
+  "exportedAt": "2026-09-11T00:00:00+09:00",
+  "app": "childcare-shift-poc",
+  "db": {
+    "schemaVersion": 4,
+    "patterns": [
+      {"id":"P01","name":"6:45","start":"06:45","end":"15:30","workMinutes":480,"breakMinutes":45,"requiredCount":2,"regularQualifiedRequired":2,"active":true},
+      {"id":"P02","name":"7:30","start":"07:30","end":"16:15","workMinutes":480,"breakMinutes":45,"requiredCount":1,"regularQualifiedRequired":0,"active":true},
+      {"id":"P03","name":"8:00","start":"08:00","end":"16:45","workMinutes":480,"breakMinutes":45,"requiredCount":2,"regularQualifiedRequired":0,"active":true},
+      {"id":"P04","name":"8:30","start":"08:30","end":"17:15","workMinutes":480,"breakMinutes":45,"requiredCount":3,"regularQualifiedRequired":0,"active":true},
+      {"id":"P05","name":"9:00","start":"09:00","end":"17:45","workMinutes":480,"breakMinutes":45,"requiredCount":2,"regularQualifiedRequired":0,"active":true},
+      {"id":"P06","name":"9:45","start":"09:45","end":"18:30","workMinutes":480,"breakMinutes":45,"requiredCount":5,"regularQualifiedRequired":0,"active":true},
+      {"id":"P07","name":"11:30","start":"11:30","end":"20:15","workMinutes":480,"breakMinutes":45,"requiredCount":2,"regularQualifiedRequired":2,"active":true},
+      {"id":"D01","name":"短時間9:00-16:15","start":"09:00","end":"16:15","workMinutes":390,"breakMinutes":45,"requiredCount":0,"regularQualifiedRequired":0,"active":true,"category":"individual"}
+    ],
+    "staff": [
+      {"id":"D001","name":"正規保育士A","employmentType":"正規保育士","role":"保育士","qualifications":["保育士"],"qualified":true,"weeklyDaysOff":null,"weeklyWorkDays":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"preferredPatternIds":["P03","P06"],"defaultPatternId":null,"shiftPolicy":"flexible","requestedOffLimit":null,"active":true,"notes":"匿名サンプル"},
+      {"id":"D002","name":"正規保育士B","employmentType":"正規保育士","role":"保育士","qualifications":["保育士"],"qualified":true,"weeklyDaysOff":null,"weeklyWorkDays":null,"fixedOffWeekdays":[],"allowedPatternIds":["D01"],"preferredPatternIds":["D01"],"defaultPatternId":"D01","shiftPolicy":"fixed","requestedOffLimit":null,"active":true,"notes":"匿名サンプル"},
+      {"id":"D003","name":"正規看護師A","employmentType":"正規看護師","role":"看護師","qualifications":["看護師"],"qualified":false,"weeklyDaysOff":null,"weeklyWorkDays":null,"fixedOffWeekdays":[],"allowedPatternIds":["P01","P02","P03","P04","P05","P06","P07"],"preferredPatternIds":["P04"],"defaultPatternId":"P04","shiftPolicy":"prefer-fixed","requestedOffLimit":null,"active":true,"notes":"匿名サンプル"},
+      {"id":"D004","name":"非常勤A","employmentType":"非正規保育士","role":"保育士","qualifications":["保育士"],"qualified":true,"weeklyDaysOff":null,"weeklyWorkDays":4,"fixedOffWeekdays":["水"],"allowedPatternIds":["P04"],"preferredPatternIds":["P04"],"defaultPatternId":"P04","shiftPolicy":"fixed","requestedOffLimit":2,"active":true,"notes":"匿名サンプル"}
+    ],
+    "monthly": {
+      "2026-09": {
+        "requestedOff": {"D001":[5],"D004":[12]},
+        "fixedOff": {},
+        "locked": false,
+        "regularMonthlyOff": 9,
+        "holidays": [21,22],
+        "edgeShiftMax": 3,
+        "dayState": {},
+        "shiftState": {}
+      }
+    }
+  }
+}
