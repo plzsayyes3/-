@@ -72,7 +72,7 @@ function normalizeStaff(source={}){
   else qualifications=[];
   return {
     ...source,
-    id:String(source.id||uid('S')),
+    id:String(source.id||'').trim(),
     name:String(source.name||''),
     employmentType:String(source.employmentType||'正規保育士'),
     role,
@@ -85,7 +85,7 @@ function normalizeStaff(source={}){
     allowedPatternIds:Array.isArray(source.allowedPatternIds)?[...new Set(source.allowedPatternIds.map(String))]:[],
     preferredPatternIds:Array.isArray(source.preferredPatternIds)?[...new Set(source.preferredPatternIds.map(String))]:[],
     defaultPatternId:source.defaultPatternId?String(source.defaultPatternId):null,
-    shiftPolicy:['flexible','prefer-fixed','fixed'].includes(source.shiftPolicy)?source.shiftPolicy:'flexible',
+    shiftPolicy:source.shiftPolicy==null?'flexible':String(source.shiftPolicy),
     requestedOffLimit:finiteOrNull(source.requestedOffLimit),
     active:source.active!==false,
     notes:String(source.notes||'')
@@ -181,9 +181,9 @@ function validation(){
   const validIds=new Set(db.patterns.map(p=>p.id));
   const staffIds=db.staff.map(s=>String(s.id||'').trim());
   [...new Set(staffIds.filter((id,i)=>id&&staffIds.indexOf(id)!==i))].forEach(id=>errors.push(`職員ID「${id}」が重複しています。`));
-  activeStaff().forEach(s=>{
-    const name=s.name||s.id;
-    if(!String(s.id||'').trim())errors.push('職員IDが未入力です。');
+  db.staff.forEach(s=>{
+    const name=s.name||s.id||'ID未設定職員';
+    if(!String(s.id||'').trim())errors.push(`${name}: 職員IDが未入力です。`);
     if(!String(s.name||'').trim())warnings.push(`${name}: 氏名が未入力です。`);
     if(!['flexible','prefer-fixed','fixed'].includes(s.shiftPolicy))errors.push(`${name}: 勤務ポリシーが不正です。`);
     if(s.shiftPolicy==='fixed'&&!s.defaultPatternId)errors.push(`${name}: 固定勤務なのに基本勤務が未設定です。`);
@@ -191,7 +191,7 @@ function validation(){
     if(s.defaultPatternId&&!(s.allowedPatternIds||[]).includes(s.defaultPatternId))errors.push(`${name}: 基本勤務が勤務可能パターンに含まれていません。`);
     (s.allowedPatternIds||[]).filter(id=>!validIds.has(id)).forEach(id=>errors.push(`${name}: 勤務可能パターン ${id} が存在しません。`));
     (s.preferredPatternIds||[]).filter(id=>!(s.allowedPatternIds||[]).includes(id)).forEach(id=>warnings.push(`${name}: 優先勤務 ${id} は勤務可能パターン外です。`));
-    if(!(s.allowedPatternIds||[]).length)warnings.push(`${name}: 勤務可能パターンがありません。`);
+    if(s.active!==false&&!(s.allowedPatternIds||[]).length)warnings.push(`${name}: 勤務可能パターンがありません。`);
     if(s.weeklyWorkDays!=null&&(s.weeklyWorkDays<0||s.weeklyWorkDays>7))errors.push(`${name}: 週勤務日数は0〜7で設定してください。`);
     if(s.weeklyDaysOff!=null&&(s.weeklyDaysOff<0||s.weeklyDaysOff>7))errors.push(`${name}: 週休数は0〜7で設定してください。`);
     if(s.weeklyWorkDays!=null&&s.weeklyDaysOff!=null&&s.weeklyWorkDays+s.weeklyDaysOff!==7)warnings.push(`${name}: 週勤務日数と週休数の合計が7ではありません。両方設定する場合は意図を確認してください。`);
@@ -206,12 +206,4 @@ function validation(){
     if(s?.requestedOffLimit!=null&&(m.requestedOff[id]||[]).length>s.requestedOffLimit)warnings.push(`${s.name||s.id}: 希望休が上限${s.requestedOffLimit}日を超えています。`);
   });
   return {errors:[...new Set(errors)],warnings:[...new Set(warnings)]};
-}
-
-function syncStaffPatternRefs(){
-  const ids=new Set(db.patterns.map(p=>p.id));
-  db.staff.forEach(s=>{
-    s.preferredPatternIds=(s.preferredPatternIds||[]).filter(id=>(s.allowedPatternIds||[]).includes(id));
-    if(s.defaultPatternId&&!ids.has(s.defaultPatternId))s.defaultPatternId=null;
-  });
 }
